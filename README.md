@@ -33,27 +33,17 @@ This repo deploys an LLM using KServe and vLLM.
 
 01. Set the `KUBECONFIG` environment variable to point to the new cluster
 
-01. Deploy the NFD and Nvidia GPU operators
+01. Deploy all components to OpenShift
 
-		make deploy-nvidia
-
-01. Deploy the Serverless and Service Mesh operators
-
-		make deploy-kserve-dependencies
-
-01. Deploy OpenShift AI and KServe
-
-		make deploy-oai
-
-01. Deploy minio and upload a model to a bucket in minio
-
-		make deploy-minio
-
-		make upload-model
-
-01. Deploy the `InferenceService`
-
-		make deploy-llm
+		make deploy
+	
+	This will:
+	
+	*   Deploy the NFD and Nvidia GPU operators
+	*   Deploy the OpenShift Serverless and Service Mesh operators
+	*   Deploy OpenShift AI and KServe
+	*   Deploy minio and upload a model to a bucket in minio
+	*   Deploy the `InferenceService`
 
 
 ## Testing the LLM

@@ -5,11 +5,11 @@ BUILDERNAME=multiarch-builder
 
 BASE:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
-.PHONY: deploy ensure-logged-in deploy-nfd deploy-nvidia deploy-kserve-dependencies deploy-oai deploy-minio upload-model deploy-llm vllm-image s3-image minio-console
+.PHONY: deploy ensure-logged-in deploy-nfd deploy-nvidia deploy-kserve-dependencies deploy-oai deploy-minio upload-model deploy-llm vllm-image s3-image minio-console clean-minio
 
 
-deploy: ensure-logged-in
-	# tdb
+deploy: ensure-logged-in deploy-nvidia deploy-kserve-dependencies deploy-oai deploy-minio upload-model deploy-llm
+	@echo "installation complete"
 
 
 ensure-logged-in:
@@ -136,6 +136,7 @@ deploy-kserve-dependencies:
 
 
 deploy-oai:
+	@echo "deploying OpenShift AI operator..."
 	oc apply -f $(BASE)/yaml/operators/openshift-ai-operator.yaml
 	@/bin/echo -n 'waiting for DataScienceCluster CRD...'
 	@until oc get crd datascienceclusters.datasciencecluster.opendatahub.io >/dev/null 2>/dev/null; do \
@@ -144,8 +145,24 @@ deploy-oai:
 	done
 	@echo 'done'
 	oc apply -f $(BASE)/yaml/operators/datasciencecluster.yaml
+	@/bin/echo -n "waiting for inferenceservice-config ConfigMap to appear..."
+	@until oc get -n redhat-ods-applications cm/inferenceservice-config >/dev/null 2>/dev/null; do \
+	  /bin/echo -n "."; \
+	  sleep 5; \
+	done
+	@echo "done"
+	@echo "increasing storage initializer memory limit..."
+	# modify storageInitializer memory limit - without this, there is a chance
+	# that the storageInitializer initContainer will be OOMKilled
+	rm -f /tmp/storageInitializer
+	oc extract -n redhat-ods-applications cm/inferenceservice-config --to=/tmp --keys=storageInitializer
+	cat /tmp/storageInitializer | sed 's/"memoryLimit": .*/"memoryLimit": "4Gi",/' > /tmp/storageInitializer.new
+	oc set data -n redhat-ods-applications cm/inferenceservice-config --from-file=storageInitializer=/tmp/storageInitializer.new
+	rm -f /tmp/storageInitializer /tmp/storageInitializer.new
+
 
 deploy-minio:
+	@echo "deploying minio..."
 	-oc create ns $(PROJ)
 	oc apply -n $(PROJ) -f $(BASE)/yaml/minio.yaml
 	@/bin/echo -n "waiting for minio routes..."
@@ -157,10 +174,19 @@ deploy-minio:
 	oc set env \
 	  -n $(PROJ) \
 	  sts/minio \
-	  MINIO_SERVER_URL="http://`oc get route/minio -o jsonpath='{.spec.host}'`" \
-	  MINIO_BROWSER_REDIRECT_URL="http://`oc get route/minio-console -o jsonpath='{.spec.host}'`"
+	  MINIO_SERVER_URL="http://`oc get -n $(PROJ) route/minio -o jsonpath='{.spec.host}'`" \
+	  MINIO_BROWSER_REDIRECT_URL="http://`oc get -n $(PROJ) route/minio-console -o jsonpath='{.spec.host}'`"
+
 
 upload-model:
+	@echo "removing any previous jobs..."
+	-oc delete -n $(PROJ) -f $(BASE)/yaml/s3-job.yaml
+	@/bin/echo -n "waiting for job to go away..."
+	@while [ `oc get -n $(PROJ) --no-headers job/setup-s3 2>/dev/null | wc -l` -gt 0 ]; do \
+	  /bin/echo -n "."; \
+	done
+	@echo "done"
+	@echo "creating job to upload model to S3..."
 	oc apply -n $(PROJ) -f $(BASE)/yaml/s3-job.yaml
 	@/bin/echo -n "waiting for pod to show up..."
 	@while [ `oc get -n $(PROJ) po -l job=setup-s3 --no-headers 2>/dev/null | wc -l` -lt 1 ]; do \
@@ -173,15 +199,9 @@ upload-model:
 	oc logs -n $(PROJ) -f job/setup-s3
 	oc delete -n $(PROJ) -f $(BASE)/yaml/s3-job.yaml
 
-deploy-llm:
-	# modify storageInitializer memory limit - without this, there is a chance
-	# that the storageInitializer initContainer will be OOMKilled
-	rm -f /tmp/storageInitializer
-	oc extract -n redhat-ods-applications cm/inferenceservice-config --to=/tmp --keys=storageInitializer
-	cat /tmp/storageInitializer | sed 's/"memoryLimit": .*/"memoryLimit": "4Gi",/' > /tmp/storageInitializer.new
-	oc set data -n redhat-ods-applications cm/inferenceservice-config --from-file=storageInitializer=/tmp/storageInitializer.new
-	rm -f /tmp/storageInitializer /tmp/storageInitializer.new
 
+deploy-llm:
+	@echo "deploying inference service..."
 	# inference service
 	#
 	-oc create ns $(PROJ)
@@ -207,6 +227,7 @@ vllm-image:
 	docker build -t $(VLLM_IMAGE) $(BASE)/vllm-image/
 	docker push $(VLLM_IMAGE)
 
+
 s3-image:
 	-mkdir -p $(BASE)/docker-cache
 	docker buildx use $(BUILDERNAME) || docker buildx create --name $(BUILDERNAME) --use
@@ -220,5 +241,10 @@ s3-image:
 	  $(BASE)/s3-utils
 	#docker build --rm -t $(S3_IMAGE) $(BASE)/s3-utils
 
+
 minio-console:
 	@echo "http://`oc get -n $(PROJ) route/minio-console -o jsonpath='{.spec.host}'`"
+
+clean-minio:
+	oc delete -n $(PROJ) -f $(BASE)/yaml/minio.yaml
+	oc delete -n $(PROJ) pvc -l app.kubernetes.io/instance=minio,app.kubernetes.io/name=minio

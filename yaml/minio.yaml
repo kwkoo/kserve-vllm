@@ -5,6 +5,9 @@ stringData:
 kind: Secret
 metadata:
   name: minio
+  labels:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/instance: minio
 ---
 apiVersion: apps/v1
 kind: StatefulSet
