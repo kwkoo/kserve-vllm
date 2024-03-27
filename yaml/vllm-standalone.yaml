@@ -1,0 +1,45 @@
+# Use this deployment to troubleshoot vLLM's model loading function
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: vllm
+  name: vllm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vllm
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: vllm
+    spec:
+      containers:
+      - command:
+        - tail
+        - -f
+        - /dev/null
+        image: ghcr.io/kwkoo/vllm-with-chat
+        #image: docker.io/vllm/vllm-openai:latest
+        name: vllmserver
+        env:
+        - name: HOME
+          value: /data
+        workingDir: /data
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        resources:
+          limits:
+            nvidia.com/gpu: "1"
+      tolerations:
+        - key: nvidia.com/gpu
+          value: "True"
+          effect: NoSchedule
+      volumes:
+      - name: data
+        emptyDir: {}
+status: {}
