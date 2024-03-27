@@ -3,46 +3,19 @@
 import requests
 import boto3
 import os
+import pathlib
+import typing
 
-models = {
-    'phi': [
-        'https://huggingface.co/microsoft/phi-2/raw/main/added_tokens.json',
-        'https://huggingface.co/microsoft/phi-2/raw/main/config.json',
-        'https://huggingface.co/microsoft/phi-2/raw/main/configuration_phi.py',
-        'https://huggingface.co/microsoft/phi-2/raw/main/generation_config.json',
-        'https://huggingface.co/microsoft/phi-2/raw/main/merges.txt',
-        'https://huggingface.co/microsoft/phi-2/resolve/main/model-00001-of-00002.safetensors',
-        'https://huggingface.co/microsoft/phi-2/resolve/main/model-00002-of-00002.safetensors',
-        'https://huggingface.co/microsoft/phi-2/raw/main/model.safetensors.index.json',
-        'https://huggingface.co/microsoft/phi-2/raw/main/modeling_phi.py',
-        'https://huggingface.co/microsoft/phi-2/raw/main/special_tokens_map.json',
-        'https://huggingface.co/microsoft/phi-2/raw/main/tokenizer.json',
-        'https://huggingface.co/microsoft/phi-2/raw/main/tokenizer_config.json',
-        'https://huggingface.co/microsoft/phi-2/raw/main/vocab.json'
-    ],
-    'mistral': [
-        'https://huggingface.co/mistralai/Mistral-7B-v0.1/raw/main/config.json',
-        'https://huggingface.co/mistralai/Mistral-7B-v0.1/raw/main/generation_config.json',
-        'https://huggingface.co/mistralai/Mistral-7B-v0.1/resolve/main/pytorch_model-00001-of-00002.bin?download=true',
-        'https://huggingface.co/mistralai/Mistral-7B-v0.1/resolve/main/pytorch_model-00002-of-00002.bin?download=true',
-        'https://huggingface.co/mistralai/Mistral-7B-v0.1/raw/main/pytorch_model.bin.index.json',
-        'https://huggingface.co/mistralai/Mistral-7B-v0.1/raw/main/special_tokens_map.json',
-        'https://huggingface.co/mistralai/Mistral-7B-v0.1/raw/main/tokenizer.json',
-        'https://huggingface.co/mistralai/Mistral-7B-v0.1/resolve/main/tokenizer.model?download=true',
-        'https://huggingface.co/mistralai/Mistral-7B-v0.1/raw/main/tokenizer_config.json'
-    ],
-    'vicuna': [
-        'https://huggingface.co/lmsys/vicuna-7b-v1.5/raw/main/config.json',
-        'https://huggingface.co/lmsys/vicuna-7b-v1.5/raw/main/generation_config.json',
-        'https://huggingface.co/lmsys/vicuna-7b-v1.5/resolve/main/pytorch_model-00001-of-00002.bin?download=true',
-        'https://huggingface.co/lmsys/vicuna-7b-v1.5/resolve/main/pytorch_model-00002-of-00002.bin?download=true',
-        'https://huggingface.co/lmsys/vicuna-7b-v1.5/raw/main/pytorch_model.bin.index.json',
-        'https://huggingface.co/lmsys/vicuna-7b-v1.5/raw/main/special_tokens_map.json',
-        'https://huggingface.co/lmsys/vicuna-7b-v1.5/resolve/main/tokenizer.model?download=true',
-        'https://huggingface.co/lmsys/vicuna-7b-v1.5/raw/main/tokenizer_config.json'
-    ]
-}
+# extracts basename from path and strips off extension
+def model_name_from_path(p: str) -> str:
+    return pathlib.Path(p).stem
 
+def lines_from_file(p: str) -> typing.List[str]:
+    if not os.path.isfile(p):
+        raise Exception(f'file {p} does not exist')
+
+    with open(p, "r") as f:
+        return [line.rstrip('\n') for line in f]
 
 def filename_from_url(url: str) -> str:
     sep = url.rfind('?')
@@ -97,10 +70,12 @@ class Client:
         if bucket is None or bucket == '':
             raise Exception('bucket is not set')
         for url in urls:
+            url = url.strip()
+            if len(url) == 0:
+                continue
             log(f'uploading {url}')
             self.upload_from_url_to_bucket(url, bucket, model_name)
 
-#download_from_bucket(bucket)
 
 if __name__ == '__main__':
     client = Client(
@@ -108,10 +83,14 @@ if __name__ == '__main__':
         os.environ.get('AWS_SECRET_ACCESS_KEY'),
         os.environ.get('AWS_ENDPOINT_URL_S3')
     )
-    model_name = os.environ.get('MODEL')
-    if model_name is None:
+    model_path = os.environ.get('MODEL')
+    if model_path is None:
         raise Exception('MODEL environment variable is not set')
-    model_urls = models.get(model_name)
-    if model_urls is None:
-        raise Exception(f'could not get URLs for {model_name}')
+    model_name = model_name_from_path(model_path)
+    if model_name == '':
+        raise Exception('could not extract model name from path')
+    log(f'model name = {model_name}')
+    model_urls = lines_from_file(model_path)
+    if len(model_urls) == 0:
+        raise Exception(f'could not get urls from {model_path}')
     client.upload_model_to_bucket(os.environ.get('S3_BUCKET', 'models'), model_name, model_urls)

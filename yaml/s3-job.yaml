@@ -1,23 +1,15 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  labels:
+    job: setup-s3
   name: setup-s3
----
-# apiVersion: rbac.authorization.k8s.io/v1
-# kind: RoleBinding
-# metadata:
-#   name: admin
-# roleRef:
-#   apiGroup: rbac.authorization.k8s.io
-#   kind: ClusterRole
-#   name: admin
-# subjects:
-# - kind: ServiceAccount
-#   name: setup-s3
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
+  labels:
+    job: setup-s3
   name: setup-s3
 spec:
   template:
@@ -33,6 +25,10 @@ spec:
         - /bin/bash
         - "-c"
         - |
+          until curl -s -o /dev/null $AWS_ENDPOINT_URL_S3 2>/dev/null; do
+            echo "waiting for minio API..."
+            sleep 5
+          done
           mc alias set minio $AWS_ENDPOINT_URL_S3 $AWS_ACCESS_KEY_ID $AWS_SECRET_ACCESS_KEY
 
           echo "creating bucket..."
@@ -56,7 +52,56 @@ spec:
         - name: MC_INSECURE
           value: "true"
         - name: MODEL
-          value: vicuna
+          value: /data/vicuna.txt
+        volumeMounts:
+        - name: data
+          mountPath: /data
+          readOnly: true
         resources: {}
       restartPolicy: Never
+      volumes:
+      - name: data
+        configMap:
+          name: setup-s3
 status: {}
+---
+apiVersion: v1
+data:
+  mistral.txt: |-
+    https://huggingface.co/mistralai/Mistral-7B-v0.1/raw/main/config.json
+    https://huggingface.co/mistralai/Mistral-7B-v0.1/raw/main/generation_config.json
+    https://huggingface.co/mistralai/Mistral-7B-v0.1/resolve/main/pytorch_model-00001-of-00002.bin?download=true
+    https://huggingface.co/mistralai/Mistral-7B-v0.1/resolve/main/pytorch_model-00002-of-00002.bin?download=true
+    https://huggingface.co/mistralai/Mistral-7B-v0.1/raw/main/pytorch_model.bin.index.json
+    https://huggingface.co/mistralai/Mistral-7B-v0.1/raw/main/special_tokens_map.json
+    https://huggingface.co/mistralai/Mistral-7B-v0.1/raw/main/tokenizer.json
+    https://huggingface.co/mistralai/Mistral-7B-v0.1/resolve/main/tokenizer.model?download=true
+    https://huggingface.co/mistralai/Mistral-7B-v0.1/raw/main/tokenizer_config.json
+  phi.txt: |-
+    https://huggingface.co/microsoft/phi-2/raw/main/added_tokens.json
+    https://huggingface.co/microsoft/phi-2/raw/main/config.json
+    https://huggingface.co/microsoft/phi-2/raw/main/configuration_phi.py
+    https://huggingface.co/microsoft/phi-2/raw/main/generation_config.json
+    https://huggingface.co/microsoft/phi-2/raw/main/merges.txt
+    https://huggingface.co/microsoft/phi-2/resolve/main/model-00001-of-00002.safetensors
+    https://huggingface.co/microsoft/phi-2/resolve/main/model-00002-of-00002.safetensors
+    https://huggingface.co/microsoft/phi-2/raw/main/model.safetensors.index.json
+    https://huggingface.co/microsoft/phi-2/raw/main/modeling_phi.py
+    https://huggingface.co/microsoft/phi-2/raw/main/special_tokens_map.json
+    https://huggingface.co/microsoft/phi-2/raw/main/tokenizer.json
+    https://huggingface.co/microsoft/phi-2/raw/main/tokenizer_config.json
+    https://huggingface.co/microsoft/phi-2/raw/main/vocab.json
+  vicuna.txt: |-
+    https://huggingface.co/lmsys/vicuna-7b-v1.5/raw/main/config.json
+    https://huggingface.co/lmsys/vicuna-7b-v1.5/raw/main/generation_config.json
+    https://huggingface.co/lmsys/vicuna-7b-v1.5/resolve/main/pytorch_model-00001-of-00002.bin?download=true
+    https://huggingface.co/lmsys/vicuna-7b-v1.5/resolve/main/pytorch_model-00002-of-00002.bin?download=true
+    https://huggingface.co/lmsys/vicuna-7b-v1.5/raw/main/pytorch_model.bin.index.json
+    https://huggingface.co/lmsys/vicuna-7b-v1.5/raw/main/special_tokens_map.json
+    https://huggingface.co/lmsys/vicuna-7b-v1.5/resolve/main/tokenizer.model?download=true
+    https://huggingface.co/lmsys/vicuna-7b-v1.5/raw/main/tokenizer_config.json
+kind: ConfigMap
+metadata:
+  labels:
+    job: setup-s3
+  name: setup-s3

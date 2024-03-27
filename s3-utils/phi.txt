@@ -1,0 +1,13 @@
+https://huggingface.co/microsoft/phi-2/raw/main/added_tokens.json
+https://huggingface.co/microsoft/phi-2/raw/main/config.json
+https://huggingface.co/microsoft/phi-2/raw/main/configuration_phi.py
+https://huggingface.co/microsoft/phi-2/raw/main/generation_config.json
+https://huggingface.co/microsoft/phi-2/raw/main/merges.txt
+https://huggingface.co/microsoft/phi-2/resolve/main/model-00001-of-00002.safetensors
+https://huggingface.co/microsoft/phi-2/resolve/main/model-00002-of-00002.safetensors
+https://huggingface.co/microsoft/phi-2/raw/main/model.safetensors.index.json
+https://huggingface.co/microsoft/phi-2/raw/main/modeling_phi.py
+https://huggingface.co/microsoft/phi-2/raw/main/special_tokens_map.json
+https://huggingface.co/microsoft/phi-2/raw/main/tokenizer.json
+https://huggingface.co/microsoft/phi-2/raw/main/tokenizer_config.json
+https://huggingface.co/microsoft/phi-2/raw/main/vocab.json

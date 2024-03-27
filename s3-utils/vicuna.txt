@@ -1,0 +1,8 @@
+https://huggingface.co/lmsys/vicuna-7b-v1.5/raw/main/config.json
+https://huggingface.co/lmsys/vicuna-7b-v1.5/raw/main/generation_config.json
+https://huggingface.co/lmsys/vicuna-7b-v1.5/resolve/main/pytorch_model-00001-of-00002.bin?download=true
+https://huggingface.co/lmsys/vicuna-7b-v1.5/resolve/main/pytorch_model-00002-of-00002.bin?download=true
+https://huggingface.co/lmsys/vicuna-7b-v1.5/raw/main/pytorch_model.bin.index.json
+https://huggingface.co/lmsys/vicuna-7b-v1.5/raw/main/special_tokens_map.json
+https://huggingface.co/lmsys/vicuna-7b-v1.5/resolve/main/tokenizer.model?download=true
+https://huggingface.co/lmsys/vicuna-7b-v1.5/raw/main/tokenizer_config.json
