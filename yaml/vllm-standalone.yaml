@@ -22,8 +22,8 @@ spec:
         - tail
         - -f
         - /dev/null
-        image: ghcr.io/kwkoo/vllm-with-chat
-        #image: docker.io/vllm/vllm-openai:latest
+        #image: ghcr.io/kwkoo/vllm-with-chat
+        image: docker.io/vllm/vllm-openai:latest
         name: vllmserver
         env:
         - name: HOME

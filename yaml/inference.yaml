@@ -38,8 +38,9 @@ spec:
     serviceAccountName: kserve-sa
     containers:
     - name: kserve-container
-      image: ghcr.io/kwkoo/vllm-with-chat
+      image: docker.io/vllm/vllm-openai:latest
       #image: docker.io/kserve/vllmserver:latest
+      workingDir: /root
       args:
       - "--port"
       - "8080"
@@ -55,8 +56,15 @@ spec:
       - containerPort: 8080
         protocol: TCP
       env:
+      - name: HOME # needed because we need to write to $HOME/.cache
+        value: /root
+      - name: PYTHONPATH
+        value: /workspace
       - name: STORAGE_URI
-        value: s3://models/vicuna/
+        value: s3://models/phi/
+      volumeMounts:
+      - name: home
+        mountPath: /root
       resources:
         limits:
           cpu: "2"
@@ -66,6 +74,9 @@ spec:
           cpu: "2"
           memory: 24Gi
           nvidia.com/gpu: "1"
+    volumes:
+    - name: home
+      emptyDir: {}
     tolerations:
       - key: nvidia.com/gpu
         value: "True"

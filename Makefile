@@ -1,11 +1,10 @@
 PROJ=demo
-VLLM_IMAGE=ghcr.io/kwkoo/vllm-with-chat
 S3_IMAGE=ghcr.io/kwkoo/s3-utils
 BUILDERNAME=multiarch-builder
 
 BASE:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
-.PHONY: deploy ensure-logged-in deploy-nfd deploy-nvidia deploy-kserve-dependencies deploy-oai deploy-minio upload-model deploy-llm vllm-image s3-image minio-console clean-minio
+.PHONY: deploy ensure-logged-in deploy-nfd deploy-nvidia deploy-kserve-dependencies deploy-oai deploy-minio upload-model deploy-llm s3-image minio-console clean-minio
 
 
 deploy: ensure-logged-in deploy-nvidia deploy-kserve-dependencies deploy-oai deploy-minio upload-model deploy-llm
@@ -221,11 +220,6 @@ deploy-llm:
 	  -e "s/storage-initializer-uid: .*/storage-initializer-uid: \"$$INIT_UID\"/" \
 	  $(BASE)/yaml/inference.yaml \
 	| oc apply -n $(PROJ) -f -
-
-
-vllm-image:
-	docker build -t $(VLLM_IMAGE) $(BASE)/vllm-image/
-	docker push $(VLLM_IMAGE)
 
 
 s3-image:
