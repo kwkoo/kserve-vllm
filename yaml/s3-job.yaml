@@ -51,7 +51,7 @@ spec:
           value: "http://minio:9000"
         - name: MC_INSECURE
           value: "true"
-        - name: MODEL
+        - name: MODELS
           value: /data/phi.txt
         volumeMounts:
         - name: data

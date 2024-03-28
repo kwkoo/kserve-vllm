@@ -63,6 +63,10 @@ class Client:
             key = entry.get('Key')
             if key is None:
                 continue
+            dir = pathlib.Path(key).parent
+            if not dir.is_dir():
+                # directory does not exist - we need to create it ahead of time
+                dir.mkdir(parents=True, exist_ok=True)
             log(f'downloading {key}')
             self.s3_client.download_file(bucket, key, key)
 
@@ -83,14 +87,19 @@ if __name__ == '__main__':
         os.environ.get('AWS_SECRET_ACCESS_KEY'),
         os.environ.get('AWS_ENDPOINT_URL_S3')
     )
-    model_path = os.environ.get('MODEL')
-    if model_path is None:
-        raise Exception('MODEL environment variable is not set')
-    model_name = model_name_from_path(model_path)
-    if model_name == '':
-        raise Exception('could not extract model name from path')
-    log(f'model name = {model_name}')
-    model_urls = lines_from_file(model_path)
-    if len(model_urls) == 0:
-        raise Exception(f'could not get urls from {model_path}')
-    client.upload_model_to_bucket(os.environ.get('S3_BUCKET', 'models'), model_name, model_urls)
+    model_paths = os.environ.get('MODELS')
+    if model_paths is None:
+        raise Exception('MODELS environment variable is not set')
+    
+    for model_path in model_paths.split(','):
+        model_path = model_path.strip()
+        model_name = model_name_from_path(model_path)
+        if model_name == '':
+            log('could not extract model name from path')
+            continue
+        log(f'model name = {model_name}')
+        model_urls = lines_from_file(model_path)
+        if len(model_urls) == 0:
+            log(f'could not get urls from {model_path}')
+            continue
+        client.upload_model_to_bucket(os.environ.get('S3_BUCKET', 'models'), model_name, model_urls)
