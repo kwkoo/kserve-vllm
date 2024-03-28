@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<head>
+  <title>RAG Demo - Query</title>
+  <meta charset='utf-8'>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styles.css" type="text/css" media="all">
+  <script src="query.js">
+  </script>
+</head>
+<body>
+
+<div class="grid-columns">
+  <div class="label grid-item">Prompt</div>
+  <input class="grid-item" id="prompt" type="text" size="50" onkeydown="lookForEnter()"/>
+</div>
+<button id="query-button" onclick="query()">Query</button>
+<div id="llm-response"></div>
+<img src="ajax-loader.gif" id="spinner"/>
+
+</body>
+</html>

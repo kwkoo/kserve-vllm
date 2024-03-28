@@ -52,7 +52,7 @@ spec:
         - name: MC_INSECURE
           value: "true"
         - name: MODELS
-          value: /data/phi.txt
+          value: /data/vicuna.txt
         volumeMounts:
         - name: data
           mountPath: /data

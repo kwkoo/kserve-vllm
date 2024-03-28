@@ -50,7 +50,11 @@ spec:
       - python3
       - "-m"
       - vllm.entrypoints.openai.api_server
-      - "--trust-remote-code"
+      - "--gpu-memory-utilization"
+      - "0.9"
+      - "--max-model-len"
+      - "2048"
+      #- "--trust-remote-code"
       #- vllm.entrypoints.api_server
       ports:
       - containerPort: 8080
@@ -61,7 +65,7 @@ spec:
       - name: PYTHONPATH
         value: /workspace
       - name: STORAGE_URI
-        value: s3://models/phi/
+        value: s3://models/vicuna/
       volumeMounts:
       - name: home
         mountPath: /root

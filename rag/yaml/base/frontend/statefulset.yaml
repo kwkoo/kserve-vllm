@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: frontend
+  name: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: 'true'
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: ghcr.io/kwkoo/openai-rag
+        env:
+        - name: PORT
+          value: "8080"
+        - name: PERSIST_DIRECTORY
+          value: /data/db
+        - name: SOURCE_DIRECTORY
+          value: /data/source_documents
+        - name: EMBEDDINGS_MODEL_NAME
+          value: all-MiniLM-L6-v2
+        - name: OPENAI_API_BASE
+          value: http://llm-predictor.demo.svc.cluster.local/v1
+        - name: OPENAI_API_KEY
+          value: EMPTY
+        - name: MODEL
+          value: /mnt/models
+        - name: TOKENIZERS_PARALLELISM
+          value: "false"
+        ports:
+        - name: http
+          containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+        volumeMounts:
+        - name: db
+          mountPath: /data/db
+        - name: source
+          mountPath: /data/source_documents
+      - name: filebrowser
+        image: docker.io/filebrowser/filebrowser:v2
+        ports:
+        - containerPort: 8081
+          name: filebrowser
+        args:
+        - --port=8081
+        - --noauth
+        - --database=/srv/filebrowser.db
+        - --disable-exec
+        volumeMounts:
+        - mountPath: /srv
+          name: source
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+  volumeClaimTemplates:
+  - metadata:
+      name: db
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 8Gi
+  - metadata:
+      name: source
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 8Gi
+status: {}

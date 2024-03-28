@@ -83,6 +83,8 @@ This repo deploys an LLM using KServe and vLLM.
 		}
 		EOF
 
+If you wish to install the RAG frontend, refer to the instructions in [`rag/`](rag/)
+
 
 ## Accessing Minio
 
