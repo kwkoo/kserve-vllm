@@ -4,7 +4,7 @@ BUILDERNAME=multiarch-builder
 
 BASE:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
-.PHONY: deploy image
+.PHONY: deploy clean ensure-logged-in image
 
 # deploys all components to a single OpenShift cluster
 deploy: ensure-logged-in
@@ -40,6 +40,10 @@ deploy: ensure-logged-in
 	@echo "done"
 	@echo "access the file browser at http://`oc get -n istio-system route/filebrowser -o jsonpath='{.spec.host}'`"
 	@echo "access the frontend at http://`oc get -n istio-system route/frontend -o jsonpath='{.spec.host}'`"
+
+clean:
+	-oc delete -k $(BASE)/yaml/base/frontend/
+	-oc delete -k $(BASE)/yaml/base/routes/
 
 
 ensure-logged-in:

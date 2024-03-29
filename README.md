@@ -16,7 +16,7 @@ This repo deploys an LLM using KServe and vLLM.
 
 			openshift-install create install-config
 
-	*   Set the compute pool to 2 replica with `p3.2xlarge` intances, and set the control plane to a single master (you will need to have `yq` installed)
+	*   Set the compute pool to 2 replica with `p3.2xlarge` instances, and set the control plane to a single master (you will need to have `yq` installed)
 
 			mv install-config.yaml install-config-old.yaml
 
