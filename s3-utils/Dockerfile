@@ -5,7 +5,6 @@ ARG TARGETARCH
 ENV HOME=/root
 
 RUN \
-  --mount=type=cache,target=/var/cache/s3-pip-$TARGETARCH \
   pip3 --no-cache-dir install boto3 requests \
   && \
   curl -Lo /usr/local/bin/mc https://dl.min.io/client/mc/release/linux-${TARGETARCH}/mc \
