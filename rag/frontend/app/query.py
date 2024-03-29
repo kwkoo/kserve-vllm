@@ -68,33 +68,30 @@ embeddings_model_name = os.environ.get("EMBEDDINGS_MODEL_NAME", "all-MiniLM-L6-v
 persist_directory = os.environ.get("PERSIST_DIRECTORY", "db")
 target_source_chunks = int(os.environ.get('TARGET_SOURCE_CHUNKS',4))
 
-db = None
 retriever = None
 llm = None
-qa = None
 
 embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
-output_queue = queue.Queue()
-llm = OpenAI(
-    model_name=model,
-    openai_api_base=openai_api_base,
-    openai_api_key=openai_api_key,
-    callbacks=[QueueCallbackHandler(output_queue)],
-    streaming=True
-)
-lock = threading.Lock()
 
 
 def initialize_query_engine():
-    global db
     global retriever
-    global qa
 
     db = Chroma(persist_directory=persist_directory, embedding_function=embeddings)
     retriever = db.as_retriever(search_kwargs={"k": target_source_chunks})
-    qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents=True)
 
 def llm_query(prompt: str):
+    output_queue = queue.Queue()
+    llm = OpenAI(
+        model_name=model,
+        openai_api_base=openai_api_base,
+        openai_api_key=openai_api_key,
+        callbacks=[QueueCallbackHandler(output_queue)],
+        temperature=0,
+        streaming=True
+    )
+    qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents=True)
+
     def cb(output):
         try:
             res = qa(prompt)
@@ -103,9 +100,8 @@ def llm_query(prompt: str):
         except requests.exceptions.RequestException as err:
             output['error'] = err
             return
-    lock.acquire()
+
     yield from stream(cb, output_queue)
-    lock.release()
 
 
 initialize_query_engine()
