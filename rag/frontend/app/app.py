@@ -28,7 +28,7 @@ logging.getLogger("uvicorn.access").addFilter(EndpointFilter())
 
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
 @app.get("/index.html")

@@ -36,10 +36,12 @@ FROM base-$TARGETARCH
 
 ARG EMBEDDINGS_MODEL="all-MiniLM-L6-v2"
 ENV HOME=/root
-CMD ["uvicorn", "app:app", "--port", "8080"]
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"]
 EXPOSE 8080
 
 RUN \
+  --mount=type=cache,target=/root/.cache \
+  --mount=type=cache,target=/root/nltk_data \
   python3 -c "from langchain.embeddings import HuggingFaceEmbeddings; HuggingFaceEmbeddings(model_name='$EMBEDDINGS_MODEL')" \
   && \
   python3 -c "import nltk; nltk.download('punkt')" \
