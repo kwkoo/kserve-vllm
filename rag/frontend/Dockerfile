@@ -36,7 +36,7 @@ FROM base-$TARGETARCH
 
 ARG EMBEDDINGS_MODEL="all-MiniLM-L6-v2"
 ENV HOME=/root
-CMD ["python3", "./app.py"]
+CMD ["uvicorn", "app:app", "--port", "8080"]
 EXPOSE 8080
 
 RUN \

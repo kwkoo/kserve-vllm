@@ -30,6 +30,8 @@ This repo deploys an LLM using KServe and vLLM.
 	*   Create the cluster
 
 			openshift-install create cluster
+			
+		You may get a `context deadline exceeded` error - this is expected because there is only a single control-plane node
 
 01. Set the `KUBECONFIG` environment variable to point to the new cluster
 

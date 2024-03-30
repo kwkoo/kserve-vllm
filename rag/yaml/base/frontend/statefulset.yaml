@@ -21,8 +21,6 @@ spec:
       - name: frontend
         image: ghcr.io/kwkoo/openai-rag
         env:
-        - name: PORT
-          value: "8080"
         - name: PERSIST_DIRECTORY
           value: /data/db
         - name: SOURCE_DIRECTORY

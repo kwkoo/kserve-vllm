@@ -1,61 +1,16 @@
 #!/usr/bin/env python3
 from langchain.chains import RetrievalQA
+from langchain.chains.retrieval_qa.base import BaseRetrievalQA
 from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.callbacks.streaming_stdout import BaseCallbackHandler
+from langchain.callbacks import AsyncIteratorCallbackHandler
 from langchain.vectorstores import Chroma
 from langchain.llms import OpenAI
 
 import os
-import threading
-import queue
-from typing import Any, Generator
+from typing import AsyncIterable, Any
 import requests
-
-# Copied from https://github.com/langchain-ai/langchain/issues/4950#issuecomment-1790074587
-class QueueCallbackHandler(BaseCallbackHandler):
-    def __init__(self, queue):
-        self.queue = queue
-
-    def on_llm_new_token(self, token: str, **kwargs) -> None:
-        self.queue.put(token)
-
-    def on_llm_end(self, *args, **kwargs) -> Any:
-        return self.queue.empty()
-
-def stream(cb: Any, llm_queue: queue.Queue) -> Generator:
-    job_done = object()
-
-    def task(res):
-        cb(res)
-        llm_queue.put(job_done)
-
-    res = dict()
-    t = threading.Thread(target=task, args=(res,))
-    t.start()
-
-    while True:
-        try:
-            item = llm_queue.get(True, timeout=5)
-            if item is job_done:
-                break
-            yield(item)
-        except queue.Empty:
-            continue
-
-    t.join()
-    yield('\n==========\n')
-    if res is None:
-        yield('could not get results from LLM\n')
-        return
-    if res.get('error') is not None:
-        yield('error: ' + str(res.get('error')) + '\n')
-    if res.get('source_documents') is not None:
-        yield('Sources\n')
-        for doc in res['source_documents']:
-            yield('----------\n')
-            yield('→ ' + doc.metadata['source'] + ':\n')
-            yield(doc.page_content)
-            yield('\n\n')
+import asyncio
+import logging
 
 
 model = os.environ.get("MODEL", "/mnt/models")
@@ -80,31 +35,59 @@ def initialize_query_engine():
     db = Chroma(persist_directory=persist_directory, embedding_function=embeddings)
     retriever = db.as_retriever(search_kwargs={"k": target_source_chunks})
 
-def llm_query(prompt: str):
-    output_queue = queue.Queue()
+async def send_query_to_llm(qa: BaseRetrievalQA, prompt: str, output: dict[str, Any]):
+    try:
+        coro = qa.acall({'query': prompt})
+        res = await coro
+        if res.get('source_documents') is not None:
+            output['source_documents'] = res['source_documents']
+    except requests.exceptions.RequestException as err:
+            output['error'] = err
+
+async def llm_query(prompt: str) -> AsyncIterable[str]:
+    callback = AsyncIteratorCallbackHandler()
     llm = OpenAI(
         model_name=model,
         openai_api_base=openai_api_base,
         openai_api_key=openai_api_key,
-        callbacks=[QueueCallbackHandler(output_queue)],
+        callbacks=[callback],
         temperature=0,
         streaming=True
     )
-    qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents=True)
 
-    def cb(output):
+    async def send_llm_request():
         try:
-            res = qa(prompt)
-            if res.get('source_documents') is not None:
-                output['source_documents'] = res['source_documents']
-        except requests.exceptions.RequestException as err:
-            output['error'] = err
-            return
+            res = await qa.acall({'query': prompt})
+            return res
+        except Exception as e:
+            raise e
+        finally:
+            callback.done
 
-    yield from stream(cb, output_queue)
+    qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents=True)
+    task = asyncio.create_task(send_llm_request())
+
+    async for token in callback.aiter():
+        yield token
+    
+    await task
+    yield("\n==========\n")
+    if task.exception() is not None:
+        yield(f"exception: {task.exception()}\n")
+    elif task.result() is not None and task.result().get("source_documents") is not None:
+        yield('Sources\n')
+        for doc in task.result().get('source_documents'):
+            yield('----------\n')
+            yield('→ ' + doc.metadata['source'] + ':\n')
+            yield(doc.page_content)
+            yield('\n\n')
 
 
 initialize_query_engine()
 
-#if __name__ == "__main__":
-#    main()
+async def main():
+    async for token in llm_query('how do you install openshift'):
+        print(token)
+
+if __name__ == "__main__":
+    asyncio.run(main())

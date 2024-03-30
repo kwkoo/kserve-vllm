@@ -8,56 +8,71 @@ if importlib.util.find_spec('pysqlite3') is not None:
 import logging
 import os
 
-from flask import Flask, redirect, Response, request, abort
+from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+from fastapi.responses import StreamingResponse, RedirectResponse
+
 from ingest import ingest_documents
 from query import llm_query, initialize_query_engine
 from delete_directory import delete_database
 
+
 # do not log access to health probes
-class LogFilter(logging.Filter):
-    def filter(self, record):
-        msg = record.getMessage()
-        if "/livez" in msg or "/readyz" in msg: return False
-        return True
-logging.getLogger("werkzeug").addFilter(LogFilter())
+class EndpointFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        return record.getMessage().find("/healthz") == -1 and record.getMessage().find("/livez") == -1 and record.getMessage().find("/readyz") == -1
 
-app = Flask(__name__, static_url_path='')
+# Filter out health probes
+logging.getLogger("uvicorn.access").addFilter(EndpointFilter())
 
-@app.route("/")
+app = FastAPI()
+
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+@app.get("/")
+@app.get("/index.html")
 def home():
-    return redirect("/index.html")
+    return RedirectResponse("/static/index.html")
 
-@app.route("/livez")
-@app.route("/readyz")
-@app.route("/healthz")
+@app.get("/livez")
+@app.get("/readyz")
+@app.get("/healthz")
 def health():
     return "OK"
 
-@app.route("/api/ingest")
-def ingest():
-    return Response(ingest_documents(), mimetype='text/plain')
 
-@app.route("/api/query", methods=['POST', 'PUT'])
-def query():
-    data = request.get_json()
-    if data is None:
-        abort(500, description='JSON not found in request body')
-    if data['prompt'] is None:
-        abort(500, description='JSON in request body does not contain prompt')
-    return Response(llm_query(data['prompt']), mimetype='text/plain')
+@app.get("/api/ingest")
+async def ingest():
+    return StreamingResponse(ingest_documents(), media_type='text/plain')
 
-@app.route("/api/deletedb")
+
+class Prompt(BaseModel):
+    prompt: str
+
+@app.post("/api/query")
+@app.put("/api/query")
+async def query(body: Prompt):
+    if body.prompt == '':
+        return {'error': 'JSON in request body does not contain prompt'}
+    return StreamingResponse(llm_query(body.prompt), media_type="text/plain")
+
+
+# @app.route("/api/deletedb")
+@app.get("/api/deletedb")
 def deletedb():
     try:
         delete_database()
         return "OK"
     except:
-        abort(500, description='could not delete database')
+        raise HTTPException(status_code=500, detail='could not delete database')
 
-@app.route("/api/refreshdb")
+
+@app.get("/api/refreshdb")
 def refreshdb():
     initialize_query_engine()
     return "OK"
+
 
 if __name__ == '__main__':
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
