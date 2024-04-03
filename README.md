@@ -4,7 +4,7 @@ This repo deploys an LLM using KServe and vLLM.
 
 ## Setup
 
-01. Provision an `AWS Blank Open Environment` in `ap-southeast-1`, create an OpenShift cluster with at least 1 `p3.8xlarge` worker node (this is needed because we are using the 34b-parameter LLaVA model)
+01. Provision an `AWS Blank Open Environment` in `ap-southeast-1`, create an OpenShift cluster with at 1 `p3.8xlarge` worker node (this is needed because we are using the 34b-parameter LLaVA model)
 
 	*   Create a new directory for the install files
 
@@ -16,13 +16,13 @@ This repo deploys an LLM using KServe and vLLM.
 
 			openshift-install create install-config
 
-	*   Set the compute pool to 2 replica with `p3.2xlarge` instances, and set the control plane to a single master (you will need to have `yq` installed)
+	*   Set the compute pool to 1 replica with a `p3.8xlarge` instances, and set the control plane to a single master (you will need to have `yq` installed)
 
 			mv install-config.yaml install-config-old.yaml
 
-			yq '.compute[0].replicas=2' < install-config-old.yaml \
+			yq '.compute[0].replicas=1' < install-config-old.yaml \
 			| \
-			yq '.compute[0].platform = {"aws":{"zones":["ap-southeast-1b"], "type":"p3.2xlarge"}}' \
+			yq '.compute[0].platform = {"aws":{"zones":["ap-southeast-1b"], "type":"p3.8xlarge"}}' \
 			| \
 			yq '.controlPlane.replicas=1' \
 			> install-config.yaml
@@ -34,6 +34,12 @@ This repo deploys an LLM using KServe and vLLM.
 		You may get a `context deadline exceeded` error - this is expected because there is only a single control-plane node
 
 01. Set the `KUBECONFIG` environment variable to point to the new cluster
+
+01. Setup the ingress with certificates from Let's Encrypt
+
+		./scripts/setup-letsencrypt
+	
+	Note: After the certificates have been installed, you will need to edit `kubeconfig` and comment out `.clusters[*].cluster.certificate-authority-data`
 
 01. Deploy all components to OpenShift
 

@@ -100,6 +100,17 @@ data:
     https://huggingface.co/lmsys/vicuna-7b-v1.5/raw/main/special_tokens_map.json
     https://huggingface.co/lmsys/vicuna-7b-v1.5/resolve/main/tokenizer.model?download=true
     https://huggingface.co/lmsys/vicuna-7b-v1.5/raw/main/tokenizer_config.json
+  nousllama2.txt: |+
+    https://huggingface.co/NousResearch/Llama-2-7b-chat-hf/raw/main/added_tokens.json
+    https://huggingface.co/NousResearch/Llama-2-7b-chat-hf/raw/main/config.json
+    https://huggingface.co/NousResearch/Llama-2-7b-chat-hf/raw/main/generation_config.json
+    https://huggingface.co/NousResearch/Llama-2-7b-chat-hf/resolve/main/model-00001-of-00002.safetensors
+    https://huggingface.co/NousResearch/Llama-2-7b-chat-hf/resolve/main/model-00002-of-00002.safetensors
+    https://huggingface.co/NousResearch/Llama-2-7b-chat-hf/raw/main/model.safetensors.index.json
+    https://huggingface.co/NousResearch/Llama-2-7b-chat-hf/raw/main/special_tokens_map.json
+    https://huggingface.co/NousResearch/Llama-2-7b-chat-hf/raw/main/tokenizer.json
+    https://huggingface.co/NousResearch/Llama-2-7b-chat-hf/resolve/main/tokenizer.model
+    https://huggingface.co/NousResearch/Llama-2-7b-chat-hf/raw/main/tokenizer_config.json
 kind: ConfigMap
 metadata:
   labels:

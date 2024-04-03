@@ -97,24 +97,6 @@ deploy-kserve-dependencies:
 	done
 	@echo 'done'
 	oc wait -n openshift-distributed-tracing po -l name=jaeger-operator --for condition=Ready
-	@echo "deploying kiali operator..."
-	@EXISTING="`oc get -n openshift-operators operatorgroup/global-operators -o jsonpath='{.metadata.annotations.olm\.providedAPIs}' 2>/dev/null`"; \
-	if [ -z "$$EXISTING" ]; then \
-	  oc annotate -n openshift-operators operatorgroup/global-operators olm.providedAPIs=Kiali.v1alpha1.kiali.io; \
-	else \
-	  echo $$EXISTING | grep Kiali; \
-	  if [ $$? -ne 0 ]; then \
-	    oc annotate --overwrite -n openshift-operators operatorgroup/global-operators olm.providedAPIs="$$EXISTING,Kiali.v1alpha1.kiali.io"; \
-	  fi; \
-	fi
-	oc apply -f $(BASE)/yaml/operators/kiali-operator.yaml
-	@/bin/echo -n 'waiting for kiali operator pod...'
-	@while [ `oc get po -n openshift-operators --no-headers -l app=kiali-operator 2>/dev/null | wc -l` -lt 1 ]; do \
-	  /bin/echo -n '.'; \
-	  sleep 5; \
-	done
-	@echo 'done'
-	oc wait -n openshift-operators po -l app=kiali-operator --for condition=Ready
 	@echo "deploying OpenShift Service Mesh operator..."
 	@EXISTING="`oc get -n openshift-operators operatorgroup/global-operators -o jsonpath='{.metadata.annotations.olm\.providedAPIs}' 2>/dev/null`"; \
 	if [ -z "$$EXISTING" ]; then \
@@ -162,7 +144,7 @@ deploy-oai:
 
 deploy-minio:
 	@echo "deploying minio..."
-	-oc create ns $(PROJ)
+	oc create ns $(PROJ) || echo "$(PROJ) namespace exists"
 	oc apply -n $(PROJ) -f $(BASE)/yaml/minio.yaml
 	@/bin/echo -n "waiting for minio routes..."
 	@until oc get -n $(PROJ) route/minio >/dev/null 2>/dev/null && oc get -n $(PROJ) route/minio-console >/dev/null 2>/dev/null; do \
@@ -203,7 +185,7 @@ deploy-llm:
 	@echo "deploying inference service..."
 	# inference service
 	#
-	-oc create ns $(PROJ)
+	oc create ns $(PROJ) || echo "$(PROJ) namespace exists"
 	@AWS_ACCESS_KEY_ID="`oc extract secret/minio -n $(PROJ) --to=- --keys=MINIO_ROOT_USER 2>/dev/null`" \
 	&& \
 	AWS_SECRET_ACCESS_KEY="`oc extract secret/minio -n $(PROJ) --to=- --keys=MINIO_ROOT_PASSWORD 2>/dev/null`" \
