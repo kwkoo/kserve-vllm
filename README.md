@@ -53,6 +53,10 @@ This repo deploys an LLM using KServe and vLLM.
 	*   Deploy minio and upload a model to a bucket in minio
 	*   Deploy the `InferenceService`
 
+01. Deploy Prometheus
+
+		make deploy-prometheus
+
 
 ## Testing the LLM
 
@@ -101,6 +105,22 @@ If you wish to install the RAG frontend, refer to the instructions in [`rag/`](r
 		make minio-console
 
 *   Login to the console with `minio` / `minio123`
+
+
+## Deploy vLLM with Nous Llama2
+
+*   Note that vLLM needs more than 16GB of GPU RAM in order to run Nous Llama2
+
+*   To deploy all components including Nous Llama2
+
+		make \
+		  deploy-nvidia \
+		  deploy-kserve-dependencies \
+		  deploy-oai \
+		  deploy-minio \
+		  upload-model-nousllama2 \
+		  deploy-llm-nousllama2 \
+		  deploy-prometheus
 
 
 ## Troubleshooting

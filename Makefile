@@ -4,7 +4,7 @@ BUILDERNAME=multiarch-builder
 
 BASE:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
-.PHONY: deploy ensure-logged-in deploy-nfd deploy-nvidia deploy-kserve-dependencies deploy-oai deploy-minio upload-model deploy-llm deploy-llm-nousllama2 s3-image minio-console clean-minio
+.PHONY: deploy ensure-logged-in deploy-nfd deploy-nvidia deploy-kserve-dependencies deploy-oai deploy-minio upload-model deploy-llm deploy-llm-nousllama2 deploy-prometheus s3-image minio-console clean-minio
 
 
 deploy: ensure-logged-in deploy-nvidia deploy-kserve-dependencies deploy-oai deploy-minio upload-model upload-model-nousllama2 deploy-llm
@@ -251,6 +251,32 @@ deploy-llm-nousllama2:
 	  -e "s/storage-initializer-uid: .*/storage-initializer-uid: \"$$INIT_UID\"/" \
 	| \
 	oc apply -n $(PROJ) -f -
+
+
+deploy-prometheus:
+	@/bin/echo -n "waiting for the inference service..."
+	@until oc get -n $(PROJ) inferenceservice/llm >/dev/null 2>/dev/null; do \
+	  /bin/echo -n "."; \
+	  sleep 5; \
+	done
+	@echo "done"
+	@/bin/echo -n "waiting for inference service url..."
+	@while true; do \
+	  llm_host="`oc get -n demo inferenceservice/llm -o jsonpath='{.status.url}' | sed 's|^.*//||'`"; \
+	  if [ -n "$$llm_host" ]; then break; fi; \
+	done; \
+	echo "done"; \
+	echo "LLM host = $$llm_host"; \
+	sed 's|targets: \["replaceme".*|targets: ["'"$$llm_host"'"]|' $(BASE)/yaml/prometheus.yaml \
+	| \
+	oc apply -n $(PROJ) -f -
+	@/bin/echo -n "waiting for route to appear..."
+	@until oc get -n $(PROJ) route/prometheus >/dev/null 2>/dev/null; do \
+	  /bin/echo -n "."; \
+	  sleep 5; \
+	done
+	@echo "done"
+	@echo "prometheus url is http://`oc get -n $(PROJ) route/prometheus -o jsonpath='{.spec.host}'`"
 
 
 s3-image:
