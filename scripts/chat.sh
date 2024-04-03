@@ -9,7 +9,15 @@
 # POST /v1/images/variations
 # POST /v1/embeddings
 
-curl localhost:8080/v1/chat/completions \
+llm_url="$(oc get inferenceservice/llm -n demo -o jsonpath='{.status.url}')"
+
+if [ -z "$llm_url" ]; then
+  echo "could not retrieve LLM URL"
+  exit 1
+fi
+
+curl ${llm_url}/v1/chat/completions \
+  -k \
   -H 'Content-Type: application/json' \
   -d '{"model":"/mnt/models", "messages":[{"role":"system","content":"You are a helpful assistant."},{"role":"user","content":"Why is the sky blue?"}]}'
 

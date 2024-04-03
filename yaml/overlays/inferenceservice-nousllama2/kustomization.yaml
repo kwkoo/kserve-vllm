@@ -1,0 +1,57 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ../../base/inferenceservice
+
+patches:
+- target: 
+    kind: InferenceService
+    name: llm
+  patch: |-
+    - op: replace
+      path: /spec/predictor/containers/0/command
+      value: # get rid of --max-model-len 2048
+      - python3
+      - "-m"
+      - vllm.entrypoints.openai.api_server
+      - "--gpu-memory-utilization"
+      - "0.9"
+      - "--tensor-parallel-size" # use 2 GPUs
+      - "2"
+- target: 
+    kind: InferenceService
+    name: llm
+  patch: |-
+    - op: replace
+      path: /spec/predictor/containers/0/env/0/value
+      value: "s3://models/nousllama2/"
+- target: 
+    kind: InferenceService
+    name: llm
+  patch: |-
+    - op: replace
+      path: /spec/predictor/containers/0/resources/limits/nvidia.com~1gpu
+      value: "2"
+- target: 
+    kind: InferenceService
+    name: llm
+  patch: |-
+    - op: replace
+      path: /spec/predictor/containers/0/resources/requests/nvidia.com~1gpu
+      value: "2"
+- target: 
+    kind: InferenceService
+    name: llm
+  patch: |-
+    - op: add
+      path: /spec/predictor/containers/0/volumeMounts/-
+      value: {"name": "dshm", "mountPath": "/dev/shm"}
+- target: 
+    kind: InferenceService
+    name: llm
+  patch: |-
+    - op: add
+      path: /spec/predictor/volumes/-
+      value: {"name": "dshm", "emptyDir": {"medium": "Memory"}}
+

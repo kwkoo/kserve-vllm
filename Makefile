@@ -4,10 +4,10 @@ BUILDERNAME=multiarch-builder
 
 BASE:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
-.PHONY: deploy ensure-logged-in deploy-nfd deploy-nvidia deploy-kserve-dependencies deploy-oai deploy-minio upload-model deploy-llm s3-image minio-console clean-minio
+.PHONY: deploy ensure-logged-in deploy-nfd deploy-nvidia deploy-kserve-dependencies deploy-oai deploy-minio upload-model deploy-llm deploy-llm-nousllama2 s3-image minio-console clean-minio
 
 
-deploy: ensure-logged-in deploy-nvidia deploy-kserve-dependencies deploy-oai deploy-minio upload-model deploy-llm
+deploy: ensure-logged-in deploy-nvidia deploy-kserve-dependencies deploy-oai deploy-minio upload-model upload-model-nousllama2 deploy-llm
 	@echo "installation complete"
 
 
@@ -161,14 +161,14 @@ deploy-minio:
 
 upload-model:
 	@echo "removing any previous jobs..."
-	-oc delete -n $(PROJ) -f $(BASE)/yaml/s3-job.yaml
+	-oc delete -n $(PROJ) -k $(BASE)/yaml/base/s3-job/
 	@/bin/echo -n "waiting for job to go away..."
 	@while [ `oc get -n $(PROJ) --no-headers job/setup-s3 2>/dev/null | wc -l` -gt 0 ]; do \
 	  /bin/echo -n "."; \
 	done
 	@echo "done"
 	@echo "creating job to upload model to S3..."
-	oc apply -n $(PROJ) -f $(BASE)/yaml/s3-job.yaml
+	oc apply -n $(PROJ) -k $(BASE)/yaml/base/s3-job/
 	@/bin/echo -n "waiting for pod to show up..."
 	@while [ `oc get -n $(PROJ) po -l job=setup-s3 --no-headers 2>/dev/null | wc -l` -lt 1 ]; do \
 	  /bin/echo -n "."; \
@@ -178,7 +178,29 @@ upload-model:
 	@/bin/echo "waiting for pod to be ready..."
 	oc wait -n $(PROJ) `oc get -n $(PROJ) po -o name -l job=setup-s3` --for=condition=Ready
 	oc logs -n $(PROJ) -f job/setup-s3
-	oc delete -n $(PROJ) -f $(BASE)/yaml/s3-job.yaml
+	oc delete -n $(PROJ) -k $(BASE)/yaml/base/s3-job/
+
+
+upload-model-nousllama2:
+	@echo "removing any previous jobs..."
+	-oc delete -n $(PROJ) -k $(BASE)/yaml/overlays/s3-job-nousllama2/
+	@/bin/echo -n "waiting for job to go away..."
+	@while [ `oc get -n $(PROJ) --no-headers job/setup-s3 2>/dev/null | wc -l` -gt 0 ]; do \
+	  /bin/echo -n "."; \
+	done
+	@echo "done"
+	@echo "creating job to upload model to S3..."
+	oc apply -n $(PROJ) -k $(BASE)/yaml/overlays/s3-job-nousllama2/
+	@/bin/echo -n "waiting for pod to show up..."
+	@while [ `oc get -n $(PROJ) po -l job=setup-s3 --no-headers 2>/dev/null | wc -l` -lt 1 ]; do \
+	  /bin/echo -n "."; \
+	  sleep 5; \
+	done
+	@echo "done"
+	@/bin/echo "waiting for pod to be ready..."
+	oc wait -n $(PROJ) `oc get -n $(PROJ) po -o name -l job=setup-s3` --for=condition=Ready
+	oc logs -n $(PROJ) -f job/setup-s3
+	oc delete -n $(PROJ) -k $(BASE)/yaml/overlays/s3-job-nousllama2/
 
 
 deploy-llm:
@@ -196,12 +218,39 @@ deploy-llm:
 	&& \
 	echo "AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY NS_UID=$$NS_UID INIT_UID=$$INIT_UID" \
 	&& \
+	oc kustomize $(BASE)/yaml/base/inferenceservice/ \
+	| \
 	sed \
 	  -e "s/AWS_ACCESS_KEY_ID: .*/AWS_ACCESS_KEY_ID: $$AWS_ACCESS_KEY_ID/" \
 	  -e "s/AWS_SECRET_ACCESS_KEY: .*/AWS_SECRET_ACCESS_KEY: $$AWS_SECRET_ACCESS_KEY/" \
 	  -e "s/storage-initializer-uid: .*/storage-initializer-uid: \"$$INIT_UID\"/" \
-	  $(BASE)/yaml/inference.yaml \
-	| oc apply -n $(PROJ) -f -
+	| \
+	oc apply -n $(PROJ) -f -
+
+
+deploy-llm-nousllama2:
+	@echo "deploying inference service..."
+	# inference service
+	#
+	oc create ns $(PROJ) || echo "$(PROJ) namespace exists"
+	@AWS_ACCESS_KEY_ID="`oc extract secret/minio -n $(PROJ) --to=- --keys=MINIO_ROOT_USER 2>/dev/null`" \
+	&& \
+	AWS_SECRET_ACCESS_KEY="`oc extract secret/minio -n $(PROJ) --to=- --keys=MINIO_ROOT_PASSWORD 2>/dev/null`" \
+	&& \
+	NS_UID="`oc get ns $(PROJ) -o jsonpath='{.metadata.annotations.openshift\.io/sa\.scc\.uid-range}' | cut -d / -f 1`" \
+	&& \
+	INIT_UID=$$(( NS_UID + 1 )) \
+	&& \
+	echo "AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY NS_UID=$$NS_UID INIT_UID=$$INIT_UID" \
+	&& \
+	oc kustomize $(BASE)/yaml/overlays/inferenceservice-nousllama2/ \
+	| \
+	sed \
+	  -e "s/AWS_ACCESS_KEY_ID: .*/AWS_ACCESS_KEY_ID: $$AWS_ACCESS_KEY_ID/" \
+	  -e "s/AWS_SECRET_ACCESS_KEY: .*/AWS_SECRET_ACCESS_KEY: $$AWS_SECRET_ACCESS_KEY/" \
+	  -e "s/storage-initializer-uid: .*/storage-initializer-uid: \"$$INIT_UID\"/" \
+	| \
+	oc apply -n $(PROJ) -f -
 
 
 s3-image:
