@@ -123,6 +123,15 @@ If you wish to install the RAG frontend, refer to the instructions in [`rag/`](r
 		  deploy-prometheus
 
 
+## Prometheus Metrics
+
+*   The `queue-proxy` sidecar of the `InferenceService` also emits prometheus metrics on port 9091 at `/metrics` - this port is not accessible outside the Service Mesh
+
+*   If you wish to make that port accessible outside the Service Mesh, you need to add port `9091` to `.spec.proxy.networking.trafficControl.inbound.excludedPorts` to `smcp/data-science-smcp` in the `istio-system` namespace
+
+*   Once the port is accessible, you can add a `Service` and `ServiceMonitor` for that port
+
+
 ## Troubleshooting
 
 *   Sometimes OpenShift takes too long to pull the vllm image and it times out and the revision is considered failed - when this happens, list the revision with `oc get revisions` and delete the revision
