@@ -4,10 +4,10 @@ BUILDERNAME=multiarch-builder
 
 BASE:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
-.PHONY: deploy ensure-logged-in deploy-nfd deploy-nvidia deploy-kserve-dependencies deploy-oai deploy-minio upload-model deploy-llm deploy-llm-nousllama2 deploy-prometheus s3-image minio-console clean-minio
+.PHONY: deploy ensure-logged-in deploy-nfd deploy-nvidia deploy-kserve-dependencies deploy-oai deploy-minio upload-model upload-model-nousllama2 deploy-llm deploy-llm-nousllama2 deploy-prometheus s3-image minio-console clean-minio
 
 
-deploy: ensure-logged-in deploy-nvidia deploy-kserve-dependencies deploy-oai deploy-minio upload-model upload-model-nousllama2 deploy-llm
+deploy: ensure-logged-in deploy-nvidia deploy-kserve-dependencies deploy-oai deploy-minio upload-model deploy-llm
 	@echo "installation complete"
 
 
