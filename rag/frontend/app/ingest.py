@@ -40,7 +40,7 @@ class Ingester:
         yield(f"Loading documents from {self.bucket_name}\n")
         filtered_files = []
         for f in get_file_list():
-            if f"s3://{self.bucket_name}/{f}" not in ignored_files:
+            if f not in ignored_files:
                 filtered_files.append(f)
         total_files = len(filtered_files)
         documents = []

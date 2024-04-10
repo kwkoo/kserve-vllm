@@ -46,7 +46,7 @@ EXPOSE 8080
 RUN \
   python3 -c "from langchain.embeddings import HuggingFaceEmbeddings; HuggingFaceEmbeddings(model_name='$EMBEDDINGS_MODEL')" \
   && \
-  python3 -c "import nltk; nltk.download('punkt')" \
+  python3 -c "import nltk; nltk.download('punkt'); nltk.download('averaged_perceptron_tagger')" \
   && \
   chown -R :0 /root /app \
   && \
