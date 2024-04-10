@@ -1,24 +1,6 @@
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
-  name: filebrowser
-spec:
-  hosts:
-  - filebrowser.demo.svc.cluster.local
-  - filebrowser-demo.apps.demo.com
-  gateways:
-  - rag-gateway
-  http:
-  - route:
-    - destination:
-        host: frontend
-        port:
-          number: 8081
-      weight: 100
----
-apiVersion: networking.istio.io/v1alpha3
-kind: VirtualService
-metadata:
   name: frontend
 spec:
   hosts:

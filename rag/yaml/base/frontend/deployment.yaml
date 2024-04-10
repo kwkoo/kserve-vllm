@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   labels:
     app: frontend
@@ -9,7 +9,6 @@ spec:
   selector:
     matchLabels:
       app: frontend
-  strategy: {}
   template:
     metadata:
       annotations:
@@ -35,6 +34,18 @@ spec:
           value: "false"
         - name: DB_URL
           value: http://milvus:19530
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: minio
+              key: MINIO_ROOT_USER
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: minio
+              key: MINIO_ROOT_PASSWORD
+        - name: AWS_ENDPOINT_URL_S3
+          value: "http://minio:9000"
         ports:
         - name: http
           containerPort: 8080
@@ -49,33 +60,8 @@ spec:
         resources:
           limits:
             nvidia.com/gpu: 1
-        volumeMounts:
-        - name: source
-          mountPath: /data/source_documents
-      - name: filebrowser
-        image: docker.io/filebrowser/filebrowser:v2
-        ports:
-        - containerPort: 8081
-          name: filebrowser
-        args:
-        - --port=8081
-        - --noauth
-        - --database=/srv/filebrowser.db
-        - --disable-exec
-        volumeMounts:
-        - mountPath: /srv
-          name: source
       tolerations:
         - key: nvidia.com/gpu
           operator: Exists
           effect: NoSchedule
-  volumeClaimTemplates:
-  - metadata:
-      name: source
-    spec:
-      accessModes:
-      - ReadWriteOnce
-      resources:
-        requests:
-          storage: 8Gi
 status: {}

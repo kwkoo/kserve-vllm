@@ -18,3 +18,4 @@ asyncio
 fastapi
 uvicorn[standard]
 pymilvus
+unstructured[pdf]

@@ -11,5 +11,4 @@ spec:
       name: http
       protocol: HTTP
     hosts:
-    - filebrowser-demo.apps.demo.com
     - frontend-demo.apps.demo.com
