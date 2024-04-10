@@ -3,7 +3,7 @@ FROM nvcr.io/nvidia/cuda:12.3.1-devel-ubi9 AS base-amd64
 RUN \
   yum update -y \
   && \
-  yum install -y python3-pip python3-devel sqlite-devel \
+  yum install -y python3-pip python3-devel \
   && \
   yum clean all
 
@@ -18,9 +18,7 @@ ENV \
 WORKDIR /app
 RUN \
   --mount=type=bind,source=./app/requirements.txt,target=/app/requirements.txt \
-  pip3 install --no-cache-dir -r requirements.txt \
-  && \
-  pip3 install --no-cache-dir pysqlite3-binary
+  pip3 install --no-cache-dir -r requirements.txt
 
 
 FROM docker.io/python:3.11 AS base-arm64

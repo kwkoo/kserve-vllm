@@ -1,10 +1,4 @@
-# Workaround for the older version of sqlite3 in the nvidia CUDA image
-# https://docs.trychroma.com/troubleshooting#sqlite
 import sys
-import importlib.util
-if importlib.util.find_spec('pysqlite3') is not None:
-    __import__('pysqlite3')
-    sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 import logging
 import os
 
