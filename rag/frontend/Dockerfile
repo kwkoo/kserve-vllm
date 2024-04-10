@@ -53,3 +53,4 @@ RUN \
   chmod -R g=u /app /root
 
 COPY --chown=:0 ./app/ /app/
+RUN chmod -R g=u /app
