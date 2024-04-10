@@ -19,8 +19,6 @@ It is assumed that you have installed OpenShift AI and you have deployed an `Inf
 
 01. Access the frontend and click on the link to ingest documents to the vector database
 
-01. After the document ingestion process has completed, click on the `Refresh Database` button - this forces the query engine to refresh its connection to the vector database
-
 01. Access the front page of the frontend again and click on the link to run your queries
 
 01. Type your query into the prompt text field and click the `Query` button
