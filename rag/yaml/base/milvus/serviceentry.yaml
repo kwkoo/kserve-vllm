@@ -1,0 +1,13 @@
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: milvus
+spec:
+  hosts:
+  - milvus
+  location: MESH_EXTERNAL
+  ports:
+  - number: 19530
+    name: grpc
+    protocol: grpc
+  resolution: DNS
