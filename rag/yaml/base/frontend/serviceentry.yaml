@@ -1,0 +1,13 @@
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: minio
+spec:
+  hosts:
+  - minio
+  location: MESH_EXTERNAL
+  ports:
+  - number: 9000
+    name: http
+    protocol: HTTP
+  resolution: DNS

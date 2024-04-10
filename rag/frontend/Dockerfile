@@ -22,6 +22,8 @@ RUN \
   && \
   pip3 install --no-cache-dir -r requirements.txt
 
+RUN \
+  yum install -y mesa-libGL && yum clean all
 
 FROM docker.io/python:3.11 AS base-arm64
 

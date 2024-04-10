@@ -5,4 +5,5 @@ resources:
 - deployment.yaml
 - gateway.yaml
 - service.yaml
+- serviceentry.yaml
 - virtualservice.yaml
