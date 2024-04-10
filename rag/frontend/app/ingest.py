@@ -4,7 +4,7 @@ from typing import List, AsyncIterable
 import asyncio
 import functools
 from db import get_db_connection, get_existing_sources
-from langchain_community.document_loaders import S3FileLoader
+from langchain.document_loaders import S3FileLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import boto3
 

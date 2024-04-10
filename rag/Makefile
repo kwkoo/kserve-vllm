@@ -16,34 +16,35 @@ deploy: ensure-logged-in
 	  oc get limitrange -n $(PROJ) -o name | xargs oc delete -n $(PROJ); \
 	fi
 
+	oc apply -n $(PROJ) -k $(BASE)/yaml/base/milvus/
+
 	SUFFIX=`oc whoami --show-console | sed 's/^[^.]*//'`; \
 	oc kustomize $(BASE)/yaml/base/frontend/ \
 	| \
 	sed \
 	  -e "s/frontend-.*/frontend-$(PROJ)$$SUFFIX/g" \
-	  -e "s/filebrowser-.*/filebrowser-$(PROJ)$$SUFFIX/g" \
 	| \
 	oc apply -n $(PROJ) -f -; \
 	oc kustomize $(BASE)/yaml/base/routes/ \
 	| \
 	sed \
 	  -e "s/frontend-.*/frontend-$(PROJ)$$SUFFIX/g" \
-	  -e "s/filebrowser-.*/filebrowser-$(PROJ)$$SUFFIX/g" \
 	| \
 	oc apply -f -
 
 	@/bin/echo -n 'waiting for routes to show up...'
-	@until oc get -n istio-system route/frontend >/dev/null 2>/dev/null && oc get -n istio-system route/filebrowser >/dev/null 2>/dev/null; do \
+	@until oc get -n istio-system route/frontend >/dev/null 2>/dev/null; do \
 	  /bin/echo -n '.'; \
 	  sleep 5; \
 	done
 	@echo "done"
-	@echo "access the file browser at http://`oc get -n istio-system route/filebrowser -o jsonpath='{.spec.host}'`"
 	@echo "access the frontend at http://`oc get -n istio-system route/frontend -o jsonpath='{.spec.host}'`"
 
 clean:
-	-oc delete -k $(BASE)/yaml/base/frontend/
-	-oc delete -k $(BASE)/yaml/base/routes/
+	oc delete -n $(PROJ) -k $(BASE)/yaml/base/frontend/ 2>/dev/null || exit 0
+	oc delete -k $(BASE)/yaml/base/routes/ 2>/dev/null || exit 0
+	oc delete -n $(PROJ) -k $(BASE)/yaml/base/milvus/ 2>/dev/null || exit 0
+	oc delete -n $(PROJ) pvc -l app=milvus 2>/dev/null || exit 0
 
 
 ensure-logged-in:

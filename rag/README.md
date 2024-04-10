@@ -4,6 +4,7 @@ The code was copied from [`PromptEngineer48 / Ollama`](https://github.com/Prompt
 
 This demo runs against an LLM that is running on KServe and vLLM.
 
+
 ## Deploying on OpenShift
 
 It is assumed that you have installed OpenShift AI and you have deployed an `InferenceService` named `llm`.
@@ -12,9 +13,9 @@ It is assumed that you have installed OpenShift AI and you have deployed an `Inf
 
 		make deploy
 
-	When the application has been deployed, it should output the URLs of the file browser and the frontend
+	When the application has been deployed, it should output the URL of the frontend
 
-01. Access the file browser and upload the documents you want to index
+01. Access the minio console and upload the documents you want to index to the `documents` bucket (create the bucket if it doesn't exist)
 
 01. Access the frontend and click on the link to ingest documents to the vector database
 
