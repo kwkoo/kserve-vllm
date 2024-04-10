@@ -18,6 +18,8 @@ ENV \
 WORKDIR /app
 RUN \
   --mount=type=bind,source=./app/requirements.txt,target=/app/requirements.txt \
+  pip3 install --upgrade pip \
+  && \
   pip3 install --no-cache-dir -r requirements.txt
 
 
@@ -26,6 +28,8 @@ FROM docker.io/python:3.11 AS base-arm64
 WORKDIR /app
 RUN \
   --mount=type=bind,source=./app/requirements.txt,target=/app/requirements.txt \
+  pip3 install --upgrade pip \
+  && \
   UNAME_M=arm64 UNAME_p=arm LLAMA_NO_METAL=1 pip3 install --no-cache-dir -r requirements.txt
 
 
