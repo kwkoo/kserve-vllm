@@ -50,8 +50,6 @@ spec:
           limits:
             nvidia.com/gpu: 1
         volumeMounts:
-        - name: db
-          mountPath: /data/db
         - name: source
           mountPath: /data/source_documents
       - name: filebrowser
@@ -72,14 +70,6 @@ spec:
           operator: Exists
           effect: NoSchedule
   volumeClaimTemplates:
-  - metadata:
-      name: db
-    spec:
-      accessModes:
-      - ReadWriteOnce
-      resources:
-        requests:
-          storage: 8Gi
   - metadata:
       name: source
     spec:

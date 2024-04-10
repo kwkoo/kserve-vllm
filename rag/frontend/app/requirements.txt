@@ -1,6 +1,5 @@
 langchain==0.0.274
 gpt4all
-chromadb==0.4.7
 llama-cpp-python==0.1.81
 urllib3==2.0.4
 PyMuPDF==1.23.5
@@ -18,3 +17,4 @@ openai==0.28
 asyncio
 fastapi
 uvicorn[standard]
+pymilvus

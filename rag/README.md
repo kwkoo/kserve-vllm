@@ -36,3 +36,7 @@ It is assumed that you have installed OpenShift AI and you have deployed an `Inf
 *   Download NLTK resources
 
 		python3 -m nltk.downloader all
+
+*   [Langchain Milvus](https://python.langchain.com/docs/integrations/vectorstores/milvus/)
+
+*   [Running Milvus in docker](https://raw.githubusercontent.com/milvus-io/milvus/master/scripts/standalone_embed.sh)

@@ -1,0 +1,28 @@
+# Runs milvus in a docker container
+
+version: "3.5"
+
+services:
+
+  milvus:
+    container_name: milvus
+    image: "docker.io/milvusdb/milvus:v2.4.0-rc.1"
+    command:
+    - milvus
+    - run
+    - standalone
+    environment:
+    - ETCD_USE_EMBED=true
+    - ETCD_DATA_DIR=/var/lib/milvus/etcd
+    - ETCD_CONFIG_PATH=/milvus/configs/embedEtcd.yaml
+    - COMMON_STORAGETYPE=local
+    ports:
+    - 19530:19530
+    - 9091:9091
+    - 2379:2379
+    volumes:
+    - ./embedEtcd.yaml:/milvus/configs/embedEtcd.yaml
+    - milvus:/var/lib/milvus
+
+volumes:
+  milvus:

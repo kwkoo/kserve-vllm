@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: milvus
+  name: milvus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: milvus
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: milvus
+    spec:
+      volumes:
+      - name: config
+        configMap:
+          name: milvus
+      containers:
+      - name: milvus
+        image: docker.io/milvusdb/milvus:v2.4.0-rc.1
+        command:
+        - milvus
+        - run
+        - standalone
+        env:
+        - name: ETCD_USE_EMBED
+          value: "true"
+        - name: ETCD_DATA_DIR
+          value: "/var/lib/milvus/etcd"
+        - name: ETCD_CONFIG_PATH
+          value: "/milvus/configs/embedEtcd.yaml"
+        - name: COMMON_STORAGETYPE
+          value: "local"
+        ports:
+        - name: grpc
+          containerPort: 19530
+        - name: http
+          containerPort: 9091
+        - name: etcd
+          containerPort: 2379
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: "http"
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: "http"
+        volumeMounts:
+        - name: db
+          mountPath: /var/lib/milvus
+        - name: config
+          mountPath: /milvus/configs/embedEtcd.yaml
+          subPath: embedEtcd.yaml
+  volumeClaimTemplates:
+  - metadata:
+      name: db
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 8Gi
+status: {}

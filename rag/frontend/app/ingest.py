@@ -2,16 +2,15 @@
 import os
 import glob
 from typing import List, AsyncIterable
-import time
 import asyncio
 import functools
+from db import get_db_connection, get_existing_sources
 
 from langchain.document_loaders import (
     CSVLoader,
     EverNoteLoader,
     PyMuPDFLoader,
     TextLoader,
-    UnstructuredEmailLoader,
     UnstructuredEPubLoader,
     UnstructuredHTMLLoader,
     UnstructuredMarkdownLoader,
@@ -21,49 +20,21 @@ from langchain.document_loaders import (
 )
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import Chroma
 from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.docstore.document import Document
 
 
 # Load environment variables
-persist_directory = os.environ.get('PERSIST_DIRECTORY', 'db')
 source_directory = os.environ.get('SOURCE_DIRECTORY', 'source_documents')
-embeddings_model_name = os.environ.get('EMBEDDINGS_MODEL_NAME', 'all-MiniLM-L6-v2')
 chunk_size = 500
 chunk_overlap = 50
-
-# Custom document loaders
-class MyElmLoader(UnstructuredEmailLoader):
-    """Wrapper to fallback to text/plain when default does not work"""
-
-    def load(self) -> List[Document]:
-        """Wrapper adding fallback for elm without html"""
-        try:
-            try:
-                doc = UnstructuredEmailLoader.load(self)
-            except ValueError as e:
-                if 'text/html content not found in email' in str(e):
-                    # Try plain text
-                    self.unstructured_kwargs["content_source"]="text/plain"
-                    doc = UnstructuredEmailLoader.load(self)
-                else:
-                    raise
-        except Exception as e:
-            # Add file_path to exception message
-            raise type(e)(f"{self.file_path}: {e}") from e
-
-        return doc
 
 
 # Map file extensions to document loaders and their arguments
 LOADER_MAPPING = {
     ".csv": (CSVLoader, {}),
-    # ".docx": (Docx2txtLoader, {}),
     ".doc": (UnstructuredWordDocumentLoader, {}),
     ".docx": (UnstructuredWordDocumentLoader, {}),
     ".enex": (EverNoteLoader, {}),
-    ".eml": (MyElmLoader, {}),
     ".epub": (UnstructuredEPubLoader, {}),
     ".html": (UnstructuredHTMLLoader, {}),
     ".md": (UnstructuredMarkdownLoader, {}),
@@ -116,43 +87,23 @@ class Ingester:
         yield(f"Split into {len(texts)} chunks of text (max. {chunk_size} tokens each)\n")
         self.texts = texts
 
-def does_vectorstore_exist(persist_directory: str) -> bool:
-    """
-    Checks if vectorstore exists
-    """
-    if os.path.exists(os.path.join(persist_directory, 'chroma.sqlite3')):
-        return True
-    
-    return False
-
-def create_embeddings(db, embeddings, texts):
-    if db is None: # db does not exist
-        db = Chroma.from_documents(texts, embeddings, persist_directory=persist_directory)
-    else: # db exists
-        db.add_documents(texts)
-
-    db.persist()
-
 async def ingest_documents() -> AsyncIterable[str]:
-    # Create embeddings
-    embeddings = HuggingFaceEmbeddings(model_name=embeddings_model_name)
-
     ingester = Ingester(source_directory)
 
-    db = None
-    ignored_files = []
-    if does_vectorstore_exist(persist_directory):
-        db = Chroma(persist_directory=persist_directory, embedding_function=embeddings)
-        collection = db.get()
-        ignored_files = [metadata['source'] for metadata in collection['metadatas']]
+    ignored_files = get_existing_sources()
+    if len(ignored_files) > 0:
+        yield(f"ignoring {ignored_files}\n")
+    db = get_db_connection()
+
     async for line in ingester.load_documents_and_split(ignored_files):
         yield line
     if ingester.texts is None:
         return
 
     yield(f"Creating embeddings in vector database, may a few minutes...\n")
+
     loop = asyncio.get_event_loop()
-    embeddings_future = loop.run_in_executor(None, create_embeddings, db, embeddings, ingester.texts)
+    embeddings_future = loop.run_in_executor(None, db.add_documents, ingester.texts)
     while not embeddings_future.done():
         yield("embeddings thread still running...\n")
         await asyncio.sleep(5)

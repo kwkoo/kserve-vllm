@@ -15,7 +15,7 @@ from fastapi.responses import StreamingResponse, RedirectResponse
 
 from ingest import ingest_documents
 from query import llm_query, initialize_query_engine
-from delete_directory import delete_database
+from db import delete_database
 
 
 # do not log access to health probes
