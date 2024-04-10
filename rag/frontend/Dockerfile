@@ -40,8 +40,6 @@ CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"]
 EXPOSE 8080
 
 RUN \
-  --mount=type=cache,target=/root/.cache \
-  --mount=type=cache,target=/root/nltk_data \
   python3 -c "from langchain.embeddings import HuggingFaceEmbeddings; HuggingFaceEmbeddings(model_name='$EMBEDDINGS_MODEL')" \
   && \
   python3 -c "import nltk; nltk.download('punkt')" \
@@ -50,6 +48,6 @@ RUN \
   && \
   chmod 775 /root \
   && \
-  chmod -R g=u /app /root /root/.cache
+  chmod -R g=u /app /root
 
 COPY --chown=:0 ./app/ /app/
