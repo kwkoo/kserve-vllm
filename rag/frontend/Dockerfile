@@ -50,6 +50,6 @@ RUN \
   && \
   chmod 775 /root \
   && \
-  chmod -R g=u /app /root
+  chmod -R g=u /app /root /root/.cache
 
 COPY --chown=:0 ./app/ /app/

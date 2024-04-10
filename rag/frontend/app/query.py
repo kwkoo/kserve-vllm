@@ -2,7 +2,6 @@
 from langchain.chains import RetrievalQA
 from langchain.chains.retrieval_qa.base import BaseRetrievalQA
 from langchain.callbacks import AsyncIteratorCallbackHandler
-from langchain.vectorstores import Chroma
 from langchain.llms import OpenAI
 
 import os

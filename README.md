@@ -4,7 +4,7 @@ This repo deploys an LLM using KServe and vLLM.
 
 ## Setup
 
-01. Provision an `AWS Blank Open Environment` in `ap-southeast-1`, create an OpenShift cluster with at 1 `p3.8xlarge` worker node (this is needed because we are using the 34b-parameter LLaVA model)
+01. Provision an `AWS Blank Open Environment` in `ap-southeast-1`, create an OpenShift cluster with at 1 `p3.8xlarge` worker node
 
 	*   Create a new directory for the install files
 
@@ -16,7 +16,7 @@ This repo deploys an LLM using KServe and vLLM.
 
 			openshift-install create install-config
 
-	*   Set the compute pool to 1 replica with a `p3.8xlarge` instances, and set the control plane to a single master (you will need to have `yq` installed)
+	*   Set the compute pool to 1 replica with a `p3.8xlarge` instance, and set the control plane to a single master (you will need to have `yq` installed)
 
 			mv install-config.yaml install-config-old.yaml
 

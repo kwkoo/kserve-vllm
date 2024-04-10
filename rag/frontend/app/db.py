@@ -1,6 +1,6 @@
 import os
 import pymilvus
-from typing import List, AsyncIterable
+from typing import List
 from langchain.vectorstores import Milvus
 from langchain.embeddings import HuggingFaceEmbeddings
 
