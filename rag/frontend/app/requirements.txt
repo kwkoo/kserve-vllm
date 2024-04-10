@@ -19,3 +19,4 @@ fastapi
 uvicorn[standard]
 pymilvus
 unstructured[pdf]
+boto3
