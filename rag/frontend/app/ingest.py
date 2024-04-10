@@ -51,7 +51,18 @@ class Ingester:
                 continue
             yield(f"Loading {file_path} ({i+1} / {total_files})\n")
             loader = S3FileLoader(self.bucket_name, file_path)
-            load_result = await loop.run_in_executor(None, loader.load)
+            load_future = loop.run_in_executor(None, loader.load)
+            while not load_future.done():
+                yield(f"Still loading {file_path}...\n")
+                await asyncio.sleep(5)
+            try:
+                load_result = load_future.result()
+            except:
+                yield(f"Error encountered")
+                continue
+            # fix paths
+            for doc in load_result:
+                doc.metadata['source'] = file_path
             documents.extend(load_result)
 
         if len(documents) == 0:
