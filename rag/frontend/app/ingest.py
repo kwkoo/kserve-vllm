@@ -4,7 +4,7 @@ from typing import List, AsyncIterable
 import asyncio
 import functools
 from db import get_db_connection, get_existing_sources
-from langchain.document_loaders import S3FileLoader
+from langchain_community.document_loaders import S3FileLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import boto3
 
@@ -57,8 +57,8 @@ class Ingester:
                 await asyncio.sleep(5)
             try:
                 load_result = load_future.result()
-            except:
-                yield(f"Error encountered")
+            except Exception as e:
+                yield(f"Error encountered: {e}")
                 continue
             # fix paths
             for doc in load_result:

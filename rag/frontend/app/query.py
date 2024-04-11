@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 from langchain.chains import RetrievalQA
-from langchain.chains.retrieval_qa.base import BaseRetrievalQA
 from langchain.callbacks import AsyncIteratorCallbackHandler
-from langchain.llms import OpenAI
+from langchain_openai import OpenAI
 
 import os
 from typing import AsyncIterable, Any
-import requests
 import asyncio
 from db import get_db_connection
 
@@ -27,15 +25,6 @@ def initialize_query_engine():
     db = get_db_connection()
     retriever = db.as_retriever(search_kwargs={"k": target_source_chunks})
 
-async def send_query_to_llm(qa: BaseRetrievalQA, prompt: str, output: dict[str, Any]):
-    try:
-        coro = qa.acall({'query': prompt})
-        res = await coro
-        if res.get('source_documents') is not None:
-            output['source_documents'] = res['source_documents']
-    except requests.exceptions.RequestException as err:
-            output['error'] = err
-
 async def llm_query(prompt: str) -> AsyncIterable[str]:
     callback = AsyncIteratorCallbackHandler()
     llm = OpenAI(
@@ -49,7 +38,7 @@ async def llm_query(prompt: str) -> AsyncIterable[str]:
 
     async def send_llm_request():
         try:
-            res = await qa.acall({'query': prompt})
+            res = await qa.ainvoke({'query': prompt})
             return res
         except Exception as e:
             raise e

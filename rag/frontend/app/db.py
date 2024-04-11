@@ -1,8 +1,8 @@
 import os
 import pymilvus
 from typing import List
-from langchain.vectorstores import Milvus
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import Milvus
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 db_url = os.environ.get('DB_URL', 'http://127.0.0.1:19530')
 
@@ -21,7 +21,7 @@ def get_db_connection() -> Milvus:
         address = address[len('http://'):]
     elif address.startswith('https://'):
         address = address[len('https://'):]
-    return Milvus(connection_args={'address': address}, embedding_function=embeddings)
+    return Milvus(connection_args={'address': address}, embedding_function=embeddings, auto_id=True)
 
 def delete_database():
     client = pymilvus.MilvusClient(uri=db_url)
