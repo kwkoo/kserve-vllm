@@ -127,6 +127,17 @@ deploy-oai:
 	cat /tmp/storageInitializer | sed 's/"memoryLimit": .*/"memoryLimit": "4Gi",/' > /tmp/storageInitializer.new
 	oc set data -n redhat-ods-applications cm/inferenceservice-config --from-file=storageInitializer=/tmp/storageInitializer.new
 	rm -f /tmp/storageInitializer /tmp/storageInitializer.new
+	@/bin/echo -n "waiting for ServiceMeshControlPlane to appear..."
+	@until oc get -n istio-system smcp/data-science-smcp >/dev/null 2>/dev/null; do \
+	  /bin/echo -n "."; \
+	  sleep 5; \
+	done
+	@echo "done"
+	@echo "turning off mutual TLS"
+	oc patch smcp/data-science-smcp \
+	  -n istio-system \
+	  --type json \
+	  -p '[{"op":"replace","path":"/spec/security/dataPlane/mtls","value":false}]'
 
 
 .PHONY: deploy-minio
