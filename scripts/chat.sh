@@ -19,5 +19,6 @@ fi
 curl ${llm_url}/v1/chat/completions \
   -k \
   -H 'Content-Type: application/json' \
-  -d '{"model":"/mnt/models", "messages":[{"role":"system","content":"You are a helpful assistant."},{"role":"user","content":"Why is the sky blue?"}]}'
+  -H 'Accept: application/json' \
+  -d '{"model":"/mnt/models", "temperature":0, "messages":[{"role":"user","content":"Hello"}]}'
 

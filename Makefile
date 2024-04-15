@@ -4,10 +4,9 @@ BUILDERNAME=multiarch-builder
 
 BASE:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
-.PHONY: deploy ensure-logged-in deploy-nfd deploy-nvidia deploy-kserve-dependencies deploy-oai deploy-minio upload-model upload-model-nousllama2 deploy-llm deploy-llm-nousllama2 deploy-prometheus s3-image minio-console clean-minio
 
 .PHONY: deploy
-deploy: ensure-logged-in deploy-nvidia deploy-kserve-dependencies deploy-oai deploy-minio upload-model deploy-llm
+deploy: ensure-logged-in configure-user-workload-monitoring deploy-nvidia deploy-kserve-dependencies deploy-oai deploy-minio upload-model deploy-llm
 	@echo "installation complete"
 
 
@@ -15,6 +14,15 @@ deploy: ensure-logged-in deploy-nvidia deploy-kserve-dependencies deploy-oai dep
 ensure-logged-in:
 	oc whoami
 	@echo 'user is logged in'
+
+
+.PHONY: configure-user-workload-monitoring
+configure-user-workload-monitoring:
+	if [ `oc get -n openshift-monitoring cm/cluster-monitoring-config --no-headers 2>/dev/null | wc -l` -lt 1 ]; then \
+	  echo 'enableUserWorkload: true' > /tmp/config.yaml; \
+	  oc create -n openshift-monitoring cm cluster-monitoring-config --from-file=/tmp/config.yaml; \
+	  rm -f /tmp/config.yaml; \
+	fi
 
 
 .PHONY: deploy-nfd
@@ -84,15 +92,6 @@ deploy-kserve-dependencies:
 	done
 	@echo 'done'
 	@echo "deploying OpenShift Service Mesh operator..."
-	@EXISTING="`oc get -n openshift-operators operatorgroup/global-operators -o jsonpath='{.metadata.annotations.olm\.providedAPIs}' 2>/dev/null`"; \
-	if [ -z "$$EXISTING" ]; then \
-	  oc annotate -n openshift-operators operatorgroup/global-operators olm.providedAPIs=ServiceMeshControlPlane.v2.maistra.io,ServiceMeshMember.v1.maistra.io,ServiceMeshMemberRoll.v1.maistra.io; \
-	else \
-	  echo $$EXISTING | grep ServiceMeshControlPlane; \
-	  if [ $$? -ne 0 ]; then \
-	    oc annotate --overwrite -n openshift-operators operatorgroup/global-operators olm.providedAPIs="$$EXISTING,ServiceMeshControlPlane.v2.maistra.io,ServiceMeshMember.v1.maistra.io,ServiceMeshMemberRoll.v1.maistra.io"; \
-	  fi; \
-	fi
 	oc apply -f $(BASE)/yaml/operators/service-mesh-operator.yaml
 	@/bin/echo -n 'waiting for ServiceMeshControlPlane CRD...'
 	@until oc get crd servicemeshcontrolplanes.maistra.io >/dev/null 2>/dev/null; do \
@@ -133,11 +132,6 @@ deploy-oai:
 	  sleep 5; \
 	done
 	@echo "done"
-	@echo "turning off mutual TLS"
-	oc patch smcp/data-science-smcp \
-	  -n istio-system \
-	  --type json \
-	  -p '[{"op":"replace","path":"/spec/security/dataPlane/mtls","value":false}]'
 
 
 .PHONY: deploy-minio
@@ -176,7 +170,7 @@ upload-model:
 	done
 	@echo "done"
 	@/bin/echo "waiting for pod to be ready..."
-	oc wait -n $(PROJ) `oc get -n $(PROJ) po -o name -l job=setup-s3` --for=condition=Ready
+	oc wait -n $(PROJ) `oc get -n $(PROJ) po -o name -l job=setup-s3` --for=condition=Ready --timeout=300s
 	oc logs -n $(PROJ) -f job/setup-s3
 	oc delete -n $(PROJ) -k $(BASE)/yaml/base/s3-job/
 
@@ -228,6 +222,23 @@ deploy-llm:
 	  -e "s/storage-initializer-uid: .*/storage-initializer-uid: \"$$INIT_UID\"/" \
 	| \
 	oc apply -n $(PROJ) -f -
+	@/bin/echo -n "waiting for inferenceservice to appear..."
+	@until oc get -n $(PROJ) inferenceservice/llm >/dev/null 2>/dev/null; do \
+	  /bin/echo -n "."; \
+	  sleep 5; \
+	done
+	@echo "done"
+	oc wait -n $(PROJ) inferenceservice/llm --for=condition=Ready --timeout=300s
+	oc patch peerauthentication/default \
+	  --type json \
+	  -p '[{"op":"replace", "path":"/spec/mtls/mode", "value":"PERMISSIVE"}]' \
+	  -n $(PROJ)
+
+
+
+.PHONY: clean-llm
+clean-llm:
+	oc delete -n $(PROJ) -k $(BASE)/yaml/base/inferenceservice/ 2>/dev/null || exit 0
 
 
 .PHONY: deploy-llm-nousllama2
@@ -254,33 +265,11 @@ deploy-llm-nousllama2:
 	  -e "s/storage-initializer-uid: .*/storage-initializer-uid: \"$$INIT_UID\"/" \
 	| \
 	oc apply -n $(PROJ) -f -
-
-
-.PHONY: deploy-prometheus
-deploy-prometheus:
-	@/bin/echo -n "waiting for the inference service..."
-	@until oc get -n $(PROJ) inferenceservice/llm >/dev/null 2>/dev/null; do \
-	  /bin/echo -n "."; \
-	  sleep 5; \
-	done
-	@echo "done"
-	@/bin/echo -n "waiting for inference service url..."
-	@while true; do \
-	  llm_host="`oc get -n demo inferenceservice/llm -o jsonpath='{.status.url}' | sed 's|^.*//||'`"; \
-	  if [ -n "$$llm_host" ]; then break; fi; \
-	done; \
-	echo "done"; \
-	echo "LLM host = $$llm_host"; \
-	sed 's|targets: \["replaceme".*|targets: ["'"$$llm_host"'"]|' $(BASE)/yaml/prometheus.yaml \
-	| \
-	oc apply -n $(PROJ) -f -
-	@/bin/echo -n "waiting for route to appear..."
-	@until oc get -n $(PROJ) route/prometheus >/dev/null 2>/dev/null; do \
-	  /bin/echo -n "."; \
-	  sleep 5; \
-	done
-	@echo "done"
-	@echo "prometheus url is http://`oc get -n $(PROJ) route/prometheus -o jsonpath='{.spec.host}'`"
+	sleep 60
+	oc patch peerauthentication/default \
+	  --type json \
+	  -p '[{"op":"replace", "path":"/spec/mtls/mode", "value":"PERMISSIVE"}]' \
+	  -n $(PROJ)
 
 
 .PHONY: s3-image

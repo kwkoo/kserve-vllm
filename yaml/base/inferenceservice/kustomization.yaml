@@ -5,3 +5,4 @@ resources:
 - inference.yaml
 - secret.yaml
 - serviceaccount.yaml
+- servicemonitor.yaml

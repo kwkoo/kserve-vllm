@@ -4,9 +4,7 @@ metadata:
   labels:
     app: frontend
   name: frontend
-  namespace: istio-system
 spec:
-  host: frontend-demo.apps.demo.com
   tls:
     termination: edge
     insecureEdgeTerminationPolicy: Allow
@@ -14,6 +12,6 @@ spec:
     targetPort: 8080
   to:
     kind: Service
-    name: istio-ingressgateway
+    name: frontend
     weight: 100
 status: {}

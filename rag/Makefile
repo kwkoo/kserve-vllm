@@ -4,9 +4,9 @@ BUILDERNAME=multiarch-builder
 
 BASE:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
-.PHONY: deploy clean ensure-logged-in image
 
 # deploys all components to a single OpenShift cluster
+.PHONY: deploy
 deploy: ensure-logged-in
 	oc new-project $(PROJ); \
 	if [ $$? -eq 0 ]; then sleep 3; fi
@@ -17,41 +17,31 @@ deploy: ensure-logged-in
 	fi
 
 	oc apply -n $(PROJ) -k $(BASE)/yaml/base/milvus/
+	oc apply -n $(PROJ) -k $(BASE)/yaml/base/frontend/
 
-	SUFFIX=`oc whoami --show-console | sed 's/^[^.]*//'`; \
-	oc kustomize $(BASE)/yaml/base/frontend/ \
-	| \
-	sed \
-	  -e "s/frontend-.*/frontend-$(PROJ)$$SUFFIX/g" \
-	| \
-	oc apply -n $(PROJ) -f -; \
-	oc kustomize $(BASE)/yaml/base/routes/ \
-	| \
-	sed \
-	  -e "s/frontend-.*/frontend-$(PROJ)$$SUFFIX/g" \
-	| \
-	oc apply -f -
-
-	@/bin/echo -n 'waiting for routes to show up...'
-	@until oc get -n istio-system route/frontend >/dev/null 2>/dev/null; do \
+	@/bin/echo -n 'waiting for route to show up...'
+	@until oc get -n $(PROJ) route/frontend >/dev/null 2>/dev/null; do \
 	  /bin/echo -n '.'; \
 	  sleep 5; \
 	done
 	@echo "done"
-	@echo "access the frontend at http://`oc get -n istio-system route/frontend -o jsonpath='{.spec.host}'`"
+	@echo "access the frontend at http://`oc get -n $(PROJ) route/frontend -o jsonpath='{.spec.host}'`"
 
+
+.PHONY: clean
 clean:
 	oc delete -n $(PROJ) -k $(BASE)/yaml/base/frontend/ 2>/dev/null || exit 0
-	oc delete -k $(BASE)/yaml/base/routes/ 2>/dev/null || exit 0
 	oc delete -n $(PROJ) -k $(BASE)/yaml/base/milvus/ 2>/dev/null || exit 0
 	oc delete -n $(PROJ) pvc -l app=milvus 2>/dev/null || exit 0
 
 
+.PHONY: ensure-logged-in
 ensure-logged-in:
 	oc whoami
 	@echo 'user is logged in'
 
 
+.PHONY: image
 image:
 	-mkdir -p $(BASE)/docker-cache 2>/dev/null
 	docker buildx use $(BUILDERNAME) || docker buildx create --name $(BUILDERNAME) --use --buildkitd-flags '--oci-worker-gc-keepstorage 50000'

@@ -3,7 +3,5 @@ kind: Kustomization
 
 resources:
 - deployment.yaml
-- gateway.yaml
+- route.yaml
 - service.yaml
-- serviceentry.yaml
-- virtualservice.yaml

@@ -11,8 +11,6 @@ spec:
       app: frontend
   template:
     metadata:
-      annotations:
-        sidecar.istio.io/inject: 'true'
       labels:
         app: frontend
     spec:
@@ -25,7 +23,7 @@ spec:
         - name: EMBEDDINGS_MODEL_NAME
           value: all-MiniLM-L6-v2
         - name: OPENAI_API_BASE
-          value: http://llm-predictor.demo.svc.cluster.local/v1
+          value: http://llm-internal:8012/v1
         - name: OPENAI_API_KEY
           value: EMPTY
         - name: MODEL

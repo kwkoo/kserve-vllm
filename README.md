@@ -53,9 +53,7 @@ This repo deploys an LLM using KServe and vLLM.
 	*   Deploy minio and upload a model to a bucket in minio
 	*   Deploy the `InferenceService`
 
-01. Deploy Prometheus
-
-		make deploy-prometheus
+01. Access the vLLM metrics from the OpenShift Console / Observe / Metrics and search for `vllm`
 
 
 ## Testing the LLM
@@ -119,11 +117,10 @@ If you wish to install the RAG frontend, refer to the instructions in [`rag/`](r
 		  deploy-oai \
 		  deploy-minio \
 		  upload-model-nousllama2 \
-		  deploy-llm-nousllama2 \
-		  deploy-prometheus
+		  deploy-llm-nousllama2
 
 
-## Prometheus Metrics
+## `queue-proxy` Metrics
 
 *   The `queue-proxy` sidecar of the `InferenceService` also emits prometheus metrics on port 9091 at `/metrics` - this port is not accessible outside the Service Mesh
 
