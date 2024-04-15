@@ -6,16 +6,18 @@ BASE:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
 .PHONY: deploy ensure-logged-in deploy-nfd deploy-nvidia deploy-kserve-dependencies deploy-oai deploy-minio upload-model upload-model-nousllama2 deploy-llm deploy-llm-nousllama2 deploy-prometheus s3-image minio-console clean-minio
 
-
+.PHONY: deploy
 deploy: ensure-logged-in deploy-nvidia deploy-kserve-dependencies deploy-oai deploy-minio upload-model deploy-llm
 	@echo "installation complete"
 
 
+.PHONY: ensure-logged-in
 ensure-logged-in:
 	oc whoami
 	@echo 'user is logged in'
 
 
+.PHONY: deploy-nfd
 deploy-nfd: ensure-logged-in
 	@echo "deploying NodeFeatureDiscovery operator..."
 	oc apply -f $(BASE)/yaml/operators/nfd-operator.yaml
@@ -35,6 +37,7 @@ deploy-nfd: ensure-logged-in
 	@echo 'NFD operator installed successfully'
 
 
+.PHONY: deploy-nvidia
 deploy-nvidia: deploy-nfd
 	@echo "deploying nvidia GPU operator..."
 	oc apply -f $(BASE)/yaml/operators/nvidia-operator.yaml
@@ -70,6 +73,7 @@ deploy-nvidia: deploy-nfd
 	done
 
 
+.PHONY: deploy-kserve-dependencies
 deploy-kserve-dependencies:
 	@echo "deploying OpenShift Serverless..."
 	oc apply -f $(BASE)/yaml/operators/serverless-operator.yaml
@@ -79,24 +83,6 @@ deploy-kserve-dependencies:
 	  sleep 5; \
 	done
 	@echo 'done'
-	@echo "deploying Elasticsearch operator..."
-	oc apply -f $(BASE)/yaml/operators/elasticsearch-operator.yaml
-	@/bin/echo -n 'waiting for elasticsearch operator pod...'
-	@while [ `oc get po -n openshift-operators-redhat -l name=elasticsearch-operator --no-headers 2>/dev/null | wc -l` -lt 1 ]; do \
-	  /bin/echo -n '.'; \
-	  sleep 5; \
-	done
-	@echo 'done'
-	oc wait -n openshift-operators-redhat po -l name=elasticsearch-operator --for condition=Ready
-	@echo "deploying distributed tracing operator..."
-	oc apply -f $(BASE)/yaml/operators/distributed-tracing-operator.yaml
-	@/bin/echo -n 'waiting for distributed tracing operator pod...'
-	@while [ `oc get po -n openshift-distributed-tracing --no-headers -l name=jaeger-operator 2>/dev/null | wc -l` -lt 1 ]; do \
-	  /bin/echo -n '.'; \
-	  sleep 5; \
-	done
-	@echo 'done'
-	oc wait -n openshift-distributed-tracing po -l name=jaeger-operator --for condition=Ready
 	@echo "deploying OpenShift Service Mesh operator..."
 	@EXISTING="`oc get -n openshift-operators operatorgroup/global-operators -o jsonpath='{.metadata.annotations.olm\.providedAPIs}' 2>/dev/null`"; \
 	if [ -z "$$EXISTING" ]; then \
@@ -116,6 +102,7 @@ deploy-kserve-dependencies:
 	@echo 'done'
 
 
+.PHONY: deploy-oai
 deploy-oai:
 	@echo "deploying OpenShift AI operator..."
 	oc apply -f $(BASE)/yaml/operators/openshift-ai-operator.yaml
@@ -142,6 +129,7 @@ deploy-oai:
 	rm -f /tmp/storageInitializer /tmp/storageInitializer.new
 
 
+.PHONY: deploy-minio
 deploy-minio:
 	@echo "deploying minio..."
 	oc create ns $(PROJ) || echo "$(PROJ) namespace exists"
@@ -159,6 +147,7 @@ deploy-minio:
 	  MINIO_BROWSER_REDIRECT_URL="http://`oc get -n $(PROJ) route/minio-console -o jsonpath='{.spec.host}'`"
 
 
+.PHONY: upload-model
 upload-model:
 	@echo "removing any previous jobs..."
 	-oc delete -n $(PROJ) -k $(BASE)/yaml/base/s3-job/
@@ -181,6 +170,7 @@ upload-model:
 	oc delete -n $(PROJ) -k $(BASE)/yaml/base/s3-job/
 
 
+.PHONY: upload-model-nousllama2
 upload-model-nousllama2:
 	@echo "removing any previous jobs..."
 	-oc delete -n $(PROJ) -k $(BASE)/yaml/overlays/s3-job-nousllama2/
@@ -203,6 +193,7 @@ upload-model-nousllama2:
 	oc delete -n $(PROJ) -k $(BASE)/yaml/overlays/s3-job-nousllama2/
 
 
+.PHONY: deploy-llm
 deploy-llm:
 	@echo "deploying inference service..."
 	# inference service
@@ -228,6 +219,7 @@ deploy-llm:
 	oc apply -n $(PROJ) -f -
 
 
+.PHONY: deploy-llm-nousllama2
 deploy-llm-nousllama2:
 	@echo "deploying inference service..."
 	# inference service
@@ -253,6 +245,7 @@ deploy-llm-nousllama2:
 	oc apply -n $(PROJ) -f -
 
 
+.PHONY: deploy-prometheus
 deploy-prometheus:
 	@/bin/echo -n "waiting for the inference service..."
 	@until oc get -n $(PROJ) inferenceservice/llm >/dev/null 2>/dev/null; do \
@@ -279,6 +272,7 @@ deploy-prometheus:
 	@echo "prometheus url is http://`oc get -n $(PROJ) route/prometheus -o jsonpath='{.spec.host}'`"
 
 
+.PHONY: s3-image
 s3-image:
 	-mkdir -p $(BASE)/docker-cache/amd64 $(BASE)/docker-cache/arm64 2>/dev/null
 	docker buildx use $(BUILDERNAME) || docker buildx create --name $(BUILDERNAME) --use
@@ -310,9 +304,12 @@ s3-image:
 	@#docker build --rm -t $(S3_IMAGE) $(BASE)/s3-utils
 
 
+.PHONY: minio-console
 minio-console:
 	@echo "http://`oc get -n $(PROJ) route/minio-console -o jsonpath='{.spec.host}'`"
 
+
+.PHONY: clean-minio
 clean-minio:
 	oc delete -n $(PROJ) -f $(BASE)/yaml/minio.yaml
 	oc delete -n $(PROJ) pvc -l app.kubernetes.io/instance=minio,app.kubernetes.io/name=minio
