@@ -59,3 +59,22 @@ image:
 	@#  --rm \
 	@#  -t $(IMAGE) \
 	@#  $(BASE)/frontend
+
+# before running this, you need to port-forward to milvus and llm
+# oc port-forward svc/milvus 19530:19530
+# oc port-forward svc/llm-internal 8012:8012
+.PHONY: remote
+remote:
+	docker run \
+	  --name frontend \
+	  --rm \
+	  -it \
+	  -p 8080:8080 \
+	  -e DB_URL=http://host.docker.internal:19530 \
+	  -e OPENAI_API_BASE=http://host.docker.internal:8012/v1 \
+	  -v ./frontend/app/app.py:/app/app.py \
+	  -v ./frontend/app/db.py:/app/db.py \
+	  -v ./frontend/app/ingest.py:/app/ingest.py \
+	  -v ./frontend/app/query.py:/app/query.py \
+	  -v ./frontend/app/static:/app/static \
+	  ghcr.io/kwkoo/openai-rag

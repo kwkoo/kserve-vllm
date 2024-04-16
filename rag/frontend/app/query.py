@@ -3,6 +3,7 @@ from langchain.chains import RetrievalQA
 from langchain.callbacks import AsyncIteratorCallbackHandler
 from langchain_openai import OpenAI
 
+import json
 import os
 from typing import AsyncIterable, Any
 import asyncio
@@ -49,19 +50,14 @@ async def llm_query(prompt: str) -> AsyncIterable[str]:
     task = asyncio.create_task(send_llm_request())
 
     async for token in callback.aiter():
-        yield token
+        yield json.dumps({'text': token}) + '\n'
     
     await task
-    yield("\n==========\n")
     if task.exception() is not None:
-        yield(f"exception: {task.exception()}\n")
+        yield json.dumps({'error': task.exception()}) + '\n'
     elif task.result() is not None and task.result().get("source_documents") is not None:
-        yield('Sources\n')
         for doc in task.result().get('source_documents'):
-            yield('----------\n')
-            yield('→ ' + doc.metadata['source'] + ':\n')
-            yield(doc.page_content)
-            yield('\n\n')
+            yield json.dumps({'source':{'path':doc.metadata['source'], 'contents':doc.page_content}}) + '\n'
 
 
 initialize_query_engine()

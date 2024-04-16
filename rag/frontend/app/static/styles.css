@@ -72,3 +72,43 @@ body {
     line-height: 1.5;
     word-wrap: break-word;
 }
+
+.error {
+    width: 80vw;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 10px;
+    font-family: sans-serif;
+    font-size: 1.5em;
+    color: red;
+    line-height: 1.5;
+    word-wrap: break-word;
+    border-style: solid;
+}
+
+.source {
+    width: 80vw;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 10px;
+    font-family: sans-serif;
+    word-wrap: break-word;
+    border-style: solid;
+}
+
+.path {
+    font-family: sans-serif;
+    font-weight: bold;
+    font-size: 2em;
+    background-color: lightgray;
+    margin-bottom: 10px;
+}
+
+.contents {
+    font-family: sans-serif;
+    font-size: 1.5em;
+}
