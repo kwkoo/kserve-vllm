@@ -265,7 +265,13 @@ deploy-llm-nousllama2:
 	  -e "s/storage-initializer-uid: .*/storage-initializer-uid: \"$$INIT_UID\"/" \
 	| \
 	oc apply -n $(PROJ) -f -
-	sleep 60
+	@/bin/echo -n "waiting for inferenceservice to appear..."
+	@until oc get -n $(PROJ) inferenceservice/llm >/dev/null 2>/dev/null; do \
+	  /bin/echo -n "."; \
+	  sleep 5; \
+	done
+	@echo "done"
+	oc wait -n $(PROJ) inferenceservice/llm --for=condition=Ready --timeout=300s
 	oc patch peerauthentication/default \
 	  --type json \
 	  -p '[{"op":"replace", "path":"/spec/mtls/mode", "value":"PERMISSIVE"}]' \

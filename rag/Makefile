@@ -7,7 +7,7 @@ BASE:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
 # deploys all components to a single OpenShift cluster
 .PHONY: deploy
-deploy: ensure-logged-in
+deploy: ensure-logged-in turn-off-mtls
 	oc new-project $(PROJ); \
 	if [ $$? -eq 0 ]; then sleep 3; fi
 	oc get limitrange -n $(PROJ) >/dev/null 2>/dev/null \
@@ -34,6 +34,21 @@ clean:
 	oc delete -n $(PROJ) -k $(BASE)/yaml/base/milvus/ 2>/dev/null || exit 0
 	oc delete -n $(PROJ) pvc -l app=milvus 2>/dev/null || exit 0
 
+
+# once you turn mtls off, you will not be able to access the InferenceService
+# from outside the cluster
+.PHONY: turn-off-mtls
+turn-off-mlts:
+	@/bin/echo -n "waiting for ServiceMeshControlPlane..."
+	@until oc get smcp/data-science-smcp -n istio-system >/dev/null 2>/dev/null; do \
+	  /bin/echo -n "."; \
+	  sleep 5; \
+	done
+	@echo "done"
+	oc patch smcp/data-science-smcp \
+	  --type json \
+	  -p '[{"op":"replace","path":"/spec/security/dataPlane/mtls","value":false}]' \
+	  -n istio-system
 
 .PHONY: ensure-logged-in
 ensure-logged-in:
