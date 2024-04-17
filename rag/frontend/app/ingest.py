@@ -99,7 +99,7 @@ class Ingester:
             download_future =  loop.run_in_executor(None, download_files_to_dir, temp_dir, filtered_files)
             while not download_future.done():
                 yield(f"Still downloading files from {self.bucket_name}...\n")
-                await asyncio.sleep(5)
+                await asyncio.wait([download_future], timeout=5)
 
             for i, file_path in enumerate(filtered_files):
                 yield(f"Loading {file_path} ({i+1} / {total_files})\n")
@@ -108,7 +108,7 @@ class Ingester:
                 loader_future = loop.run_in_executor(None, loader.load)
                 while not loader_future.done():
                     yield(f"Still loading {file_path}...\n")
-                    await asyncio.sleep(3)
+                    await asyncio.wait([loader_future], timeout=5)
                 load_result = loader_future.result()
                 # fix paths
                 for doc in load_result:
@@ -123,12 +123,12 @@ class Ingester:
         splitter_future = loop.run_in_executor(None, functools.partial(RecursiveCharacterTextSplitter, chunk_size=chunk_size, chunk_overlap=chunk_overlap))
         while not splitter_future.done():
             yield("Still splitting documents...\n")
-            await asyncio.sleep(3)
+            await asyncio.wait([splitter_future], timeout=5)
         text_splitter = splitter_future.result()
         texts_future = loop.run_in_executor(None, text_splitter.split_documents, documents)
         while not texts_future.done():
             yield("Still splitting documents...\n")
-            await asyncio.sleep(3)
+            await asyncio.wait([texts_future], timeout=5)
         texts = texts_future.result()
         yield(f"Split into {len(texts)} chunks of text (max. {chunk_size} tokens each)\n")
         self.texts = texts
@@ -152,7 +152,7 @@ async def ingest_documents() -> AsyncIterable[str]:
     embeddings_future = loop.run_in_executor(None, db.add_documents, ingester.texts)
     while not embeddings_future.done():
         yield("embeddings thread still running...\n")
-        await asyncio.sleep(5)
+        await asyncio.wait([embeddings_future], timeout=5)
 
     yield(f"Ingestion complete\n")
 
