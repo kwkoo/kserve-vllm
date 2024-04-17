@@ -126,12 +126,6 @@ deploy-oai:
 	cat /tmp/storageInitializer | sed 's/"memoryLimit": .*/"memoryLimit": "4Gi",/' > /tmp/storageInitializer.new
 	oc set data -n redhat-ods-applications cm/inferenceservice-config --from-file=storageInitializer=/tmp/storageInitializer.new
 	rm -f /tmp/storageInitializer /tmp/storageInitializer.new
-	@/bin/echo -n "waiting for ServiceMeshControlPlane to appear..."
-	@until oc get -n istio-system smcp/data-science-smcp >/dev/null 2>/dev/null; do \
-	  /bin/echo -n "."; \
-	  sleep 5; \
-	done
-	@echo "done"
 
 
 .PHONY: deploy-minio
@@ -208,18 +202,13 @@ deploy-llm:
 	&& \
 	AWS_SECRET_ACCESS_KEY="`oc extract secret/minio -n $(PROJ) --to=- --keys=MINIO_ROOT_PASSWORD 2>/dev/null`" \
 	&& \
-	NS_UID="`oc get ns $(PROJ) -o jsonpath='{.metadata.annotations.openshift\.io/sa\.scc\.uid-range}' | cut -d / -f 1`" \
-	&& \
-	INIT_UID=$$(( NS_UID + 1 )) \
-	&& \
-	echo "AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY NS_UID=$$NS_UID INIT_UID=$$INIT_UID" \
+	echo "AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY" \
 	&& \
 	oc kustomize $(BASE)/yaml/base/inferenceservice/ \
 	| \
 	sed \
 	  -e "s/AWS_ACCESS_KEY_ID: .*/AWS_ACCESS_KEY_ID: $$AWS_ACCESS_KEY_ID/" \
 	  -e "s/AWS_SECRET_ACCESS_KEY: .*/AWS_SECRET_ACCESS_KEY: $$AWS_SECRET_ACCESS_KEY/" \
-	  -e "s/storage-initializer-uid: .*/storage-initializer-uid: \"$$INIT_UID\"/" \
 	| \
 	oc apply -n $(PROJ) -f -
 	@/bin/echo -n "waiting for inferenceservice to appear..."
@@ -229,11 +218,6 @@ deploy-llm:
 	done
 	@echo "done"
 	oc wait -n $(PROJ) inferenceservice/llm --for=condition=Ready --timeout=300s
-	oc patch peerauthentication/default \
-	  --type json \
-	  -p '[{"op":"replace", "path":"/spec/mtls/mode", "value":"PERMISSIVE"}]' \
-	  -n $(PROJ)
-
 
 
 .PHONY: clean-llm
@@ -251,18 +235,13 @@ deploy-llm-nousllama2:
 	&& \
 	AWS_SECRET_ACCESS_KEY="`oc extract secret/minio -n $(PROJ) --to=- --keys=MINIO_ROOT_PASSWORD 2>/dev/null`" \
 	&& \
-	NS_UID="`oc get ns $(PROJ) -o jsonpath='{.metadata.annotations.openshift\.io/sa\.scc\.uid-range}' | cut -d / -f 1`" \
-	&& \
-	INIT_UID=$$(( NS_UID + 1 )) \
-	&& \
-	echo "AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY NS_UID=$$NS_UID INIT_UID=$$INIT_UID" \
+	echo "AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY" \
 	&& \
 	oc kustomize $(BASE)/yaml/overlays/inferenceservice-nousllama2/ \
 	| \
 	sed \
 	  -e "s/AWS_ACCESS_KEY_ID: .*/AWS_ACCESS_KEY_ID: $$AWS_ACCESS_KEY_ID/" \
 	  -e "s/AWS_SECRET_ACCESS_KEY: .*/AWS_SECRET_ACCESS_KEY: $$AWS_SECRET_ACCESS_KEY/" \
-	  -e "s/storage-initializer-uid: .*/storage-initializer-uid: \"$$INIT_UID\"/" \
 	| \
 	oc apply -n $(PROJ) -f -
 	@/bin/echo -n "waiting for inferenceservice to appear..."
@@ -272,10 +251,6 @@ deploy-llm-nousllama2:
 	done
 	@echo "done"
 	oc wait -n $(PROJ) inferenceservice/llm --for=condition=Ready --timeout=300s
-	oc patch peerauthentication/default \
-	  --type json \
-	  -p '[{"op":"replace", "path":"/spec/mtls/mode", "value":"PERMISSIVE"}]' \
-	  -n $(PROJ)
 
 
 .PHONY: s3-image

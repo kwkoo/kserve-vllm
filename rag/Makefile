@@ -7,7 +7,7 @@ BASE:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
 # deploys all components to a single OpenShift cluster
 .PHONY: deploy
-deploy: ensure-logged-in turn-off-mtls
+deploy: ensure-logged-in
 	oc new-project $(PROJ); \
 	if [ $$? -eq 0 ]; then sleep 3; fi
 	oc get limitrange -n $(PROJ) >/dev/null 2>/dev/null \
@@ -34,21 +34,6 @@ clean:
 	oc delete -n $(PROJ) -k $(BASE)/yaml/base/milvus/ 2>/dev/null || exit 0
 	oc delete -n $(PROJ) pvc -l app=milvus 2>/dev/null || exit 0
 
-
-# once you turn mtls off, you will not be able to access the InferenceService
-# from outside the cluster
-.PHONY: turn-off-mtls
-turn-off-mlts:
-	@/bin/echo -n "waiting for ServiceMeshControlPlane..."
-	@until oc get smcp/data-science-smcp -n istio-system >/dev/null 2>/dev/null; do \
-	  /bin/echo -n "."; \
-	  sleep 5; \
-	done
-	@echo "done"
-	oc patch smcp/data-science-smcp \
-	  --type json \
-	  -p '[{"op":"replace","path":"/spec/security/dataPlane/mtls","value":false}]' \
-	  -n istio-system
 
 .PHONY: ensure-logged-in
 ensure-logged-in:
@@ -78,6 +63,7 @@ image:
 # before running this, you need to port-forward to milvus and llm
 # oc port-forward svc/milvus 19530:19530
 # oc port-forward svc/llm-internal 8012:8012
+# oc port-forward svc/minio 9000:9000
 .PHONY: remote
 remote:
 	docker run \
@@ -87,6 +73,9 @@ remote:
 	  -p 8080:8080 \
 	  -e DB_URL=http://host.docker.internal:19530 \
 	  -e OPENAI_API_BASE=http://host.docker.internal:8012/v1 \
+	  -e AWS_ACCESS_KEY_ID=minio \
+	  -e AWS_SECRET_ACCESS_KEY=minio123 \
+	  -e AWS_ENDPOINT_URL_S3=http://host.docker.internal:9000 \
 	  -v ./frontend/app/app.py:/app/app.py \
 	  -v ./frontend/app/db.py:/app/db.py \
 	  -v ./frontend/app/ingest.py:/app/ingest.py \
