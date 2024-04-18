@@ -18,8 +18,8 @@ spec:
       - name: frontend
         image: ghcr.io/kwkoo/openai-rag
         env:
-        - name: SOURCE_DIRECTORY
-          value: /data/source_documents
+        - name: TMPDIR
+          value: /data
         - name: EMBEDDINGS_MODEL_NAME
           value: all-MiniLM-L6-v2
         - name: OPENAI_API_BASE
@@ -55,9 +55,15 @@ spec:
           httpGet:
             path: /healthz
             port: http
+        volumeMounts:
+        - name: data
+          mountPath: /data
         resources:
           limits:
             nvidia.com/gpu: 1
+      volumes:
+      - name: data
+        emptyDir: {}
       tolerations:
         - key: nvidia.com/gpu
           operator: Exists

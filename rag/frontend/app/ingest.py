@@ -24,6 +24,7 @@ from langchain_community.document_loaders import (
 
 # Load environment variables
 bucket_name = os.environ.get("SOURCE_BUCKET", "documents")
+tmpdir = os.environ.get("TMPDIR")
 chunk_size = 500
 chunk_overlap = 50
 
@@ -70,6 +71,7 @@ def download_files_to_dir(dir: str, files: List[str]):
         full_path = os.path.join(dir, f)
         os.makedirs(os.path.dirname(full_path), exist_ok=True)
         client.download_file(bucket_name, f, full_path)
+    client.close()
 
 class Ingester:
     texts = None
@@ -95,7 +97,7 @@ class Ingester:
         total_files = len(filtered_files)
         documents = []
 
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tempfile.TemporaryDirectory(dir=tmpdir) as temp_dir:
             download_future =  loop.run_in_executor(None, download_files_to_dir, temp_dir, filtered_files)
             while not download_future.done():
                 yield(f"Still downloading files from {self.bucket_name}...\n")
@@ -103,16 +105,48 @@ class Ingester:
 
             for i, file_path in enumerate(filtered_files):
                 yield(f"Loading {file_path} ({i+1} / {total_files})\n")
+                ext = "." + file_path.rsplit(".", 1)[-1]
                 loader_class, loader_args = LOADER_MAPPING[ext]
-                loader = loader_class(os.path.join(temp_dir, file_path), **loader_args)
+                filesystem_path = os.path.join(temp_dir, file_path)
+                yield(f"file system path={filesystem_path}, file size={round(os.stat(filesystem_path).st_size / (1024*1024), 2)}MB, loader={loader_class.__name__}\n")
+                loader = loader_class(filesystem_path, **loader_args)
                 loader_future = loop.run_in_executor(None, loader.load)
                 while not loader_future.done():
                     yield(f"Still loading {file_path}...\n")
                     await asyncio.wait([loader_future], timeout=5)
-                load_result = loader_future.result()
-                # fix paths
+                try:
+                    load_result = loader_future.result()
+                except Exception as e:
+                    yield(f"Exception caught while loading document {filesystem_path}: {e}\n")
+                    continue
+                # fix metadata
                 for doc in load_result:
                     doc.metadata['source'] = file_path
+                    doc.metadata['file_path'] = f"s3://{self.bucket_name}/{file_path}"
+                    if doc.metadata.get('page') is None:
+                        doc.metadata['page'] = 0
+                    if doc.metadata.get('total_pages') is None:
+                        doc.metadata['total_pages'] = 0
+                    if doc.metadata.get('format') is None:
+                        doc.metadata['format'] = ''
+                    if doc.metadata.get('title') is None:
+                        doc.metadata['title'] = ''
+                    if doc.metadata.get('author') is None:
+                        doc.metadata['author'] = ''
+                    if doc.metadata.get('subject') is None:
+                        doc.metadata['subject'] = ''
+                    if doc.metadata.get('keywords') is None:
+                        doc.metadata['keywords'] = ''
+                    if doc.metadata.get('creator') is None:
+                        doc.metadata['creator'] = ''
+                    if doc.metadata.get('producer') is None:
+                        doc.metadata['producer'] = ''
+                    if doc.metadata.get('creationDate') is None:
+                        doc.metadata['creationDate'] = ''
+                    if doc.metadata.get('modDate') is None:
+                        doc.metadata['modDate'] = ''
+                    if doc.metadata.get('trapped') is None:
+                        doc.metadata['trapped'] = ''
                 documents.extend(load_result)
 
         if len(documents) == 0:
@@ -154,7 +188,11 @@ async def ingest_documents() -> AsyncIterable[str]:
         yield("embeddings thread still running...\n")
         await asyncio.wait([embeddings_future], timeout=5)
 
-    yield(f"Ingestion complete\n")
+    embeddings_exception = embeddings_future.exception()
+    if embeddings_exception:
+        yield(f"Exception caught while creating embeddings: {embeddings_exception}\n")
+    else:
+        yield(f"Ingestion complete\n")
 
 
 async def main():

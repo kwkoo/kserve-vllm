@@ -60,6 +60,7 @@ image:
 	@#  -t $(IMAGE) \
 	@#  $(BASE)/frontend
 
+
 # before running this, you need to port-forward to milvus and llm
 # oc port-forward svc/milvus 19530:19530
 # oc port-forward svc/llm-internal 8012:8012
@@ -82,6 +83,7 @@ remote:
 	  -v ./frontend/app/query.py:/app/query.py \
 	  -v ./frontend/app/static:/app/static \
 	  ghcr.io/kwkoo/openai-rag
+
 
 # before running this, you need to port-forward to milvus and llm
 # oc port-forward svc/milvus 19530:19530
