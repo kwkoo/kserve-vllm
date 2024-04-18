@@ -57,7 +57,10 @@ async def llm_query(prompt: str) -> AsyncIterable[str]:
         yield json.dumps({'error': task.exception()}) + '\n'
     elif task.result() is not None and task.result().get("source_documents") is not None:
         for doc in task.result().get('source_documents'):
-            yield json.dumps({'source':{'path':doc.metadata['source'], 'contents':doc.page_content}}) + '\n'
+            path = doc.metadata['source']
+            if doc.metadata.get('page'):
+                path = f"{path} - page {doc.metadata['page']}"
+            yield json.dumps({'source':{'path':path, 'contents':doc.page_content}}) + '\n'
 
 
 initialize_query_engine()

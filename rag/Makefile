@@ -82,3 +82,27 @@ remote:
 	  -v ./frontend/app/query.py:/app/query.py \
 	  -v ./frontend/app/static:/app/static \
 	  ghcr.io/kwkoo/openai-rag
+
+# before running this, you need to port-forward to milvus and llm
+# oc port-forward svc/milvus 19530:19530
+# oc port-forward svc/llm-internal 8012:8012
+# oc port-forward svc/minio 9000:9000
+.PHONY: debug
+debug:
+	docker run \
+	  --name frontend \
+	  --rm \
+	  -it \
+	  -p 8080:8080 \
+	  -e DB_URL=http://host.docker.internal:19530 \
+	  -e OPENAI_API_BASE=http://host.docker.internal:8012/v1 \
+	  -e AWS_ACCESS_KEY_ID=minio \
+	  -e AWS_SECRET_ACCESS_KEY=minio123 \
+	  -e AWS_ENDPOINT_URL_S3=http://host.docker.internal:9000 \
+	  -v ./frontend/app/app.py:/app/app.py \
+	  -v ./frontend/app/db.py:/app/db.py \
+	  -v ./frontend/app/ingest.py:/app/ingest.py \
+	  -v ./frontend/app/query.py:/app/query.py \
+	  -v ./frontend/app/static:/app/static \
+	  ghcr.io/kwkoo/openai-rag \
+	  tail -f /dev/null
