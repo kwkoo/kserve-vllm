@@ -217,7 +217,7 @@ deploy-llm:
 	  sleep 5; \
 	done
 	@echo "done"
-	oc wait -n $(PROJ) inferenceservice/llm --for=condition=Ready --timeout=300s
+	oc wait -n $(PROJ) inferenceservice/llm --for=condition=Ready --timeout=600s
 
 
 .PHONY: clean-llm
