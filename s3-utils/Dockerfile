@@ -1,3 +1,6 @@
+# Note: This Dockerfile is obsolete - please use the following instead:
+# https://github.com/kwkoo/kserve-stable-diffusion/blob/main/s3-utils/Dockerfile
+
 FROM docker.io/python:3.11
 
 ARG TARGETARCH

@@ -255,34 +255,35 @@ deploy-llm-nousllama2:
 
 .PHONY: s3-image
 s3-image:
-	-mkdir -p $(BASE)/docker-cache/amd64 $(BASE)/docker-cache/arm64 2>/dev/null
-	docker buildx use $(BUILDERNAME) || docker buildx create --name $(BUILDERNAME) --use
-	docker buildx build \
-	  --push \
-	  --provenance false \
-	  --sbom false \
-	  --platform=linux/amd64 \
-	  --cache-to type=local,dest=$(BASE)/docker-cache/amd64,mode=max \
-	  --cache-from type=local,src=$(BASE)/docker-cache/amd64 \
-	  --rm \
-	  -t $(S3_IMAGE):amd64 \
-	  $(BASE)/s3-utils
-	docker buildx build \
-	  --push \
-	  --provenance false \
-	  --sbom false \
-	  --platform=linux/arm64 \
-	  --cache-to type=local,dest=$(BASE)/docker-cache/arm64,mode=max \
-	  --cache-from type=local,src=$(BASE)/docker-cache/arm64 \
-	  --rm \
-	  -t $(S3_IMAGE):arm64 \
-	  $(BASE)/s3-utils
-	docker manifest create \
-	  $(S3_IMAGE):latest \
-	  --amend $(S3_IMAGE):amd64 \
-	  --amend $(S3_IMAGE):arm64
-	docker manifest push --purge $(S3_IMAGE):latest
-	@#docker build --rm -t $(S3_IMAGE) $(BASE)/s3-utils
+	@echo "please use the image from https://github.com/kwkoo/kserve-stable-diffusion/"
+	# -mkdir -p $(BASE)/docker-cache/amd64 $(BASE)/docker-cache/arm64 2>/dev/null
+	# docker buildx use $(BUILDERNAME) || docker buildx create --name $(BUILDERNAME) --use
+	# docker buildx build \
+	#   --push \
+	#   --provenance false \
+	#   --sbom false \
+	#   --platform=linux/amd64 \
+	#   --cache-to type=local,dest=$(BASE)/docker-cache/amd64,mode=max \
+	#   --cache-from type=local,src=$(BASE)/docker-cache/amd64 \
+	#   --rm \
+	#   -t $(S3_IMAGE):amd64 \
+	#   $(BASE)/s3-utils
+	# docker buildx build \
+	#   --push \
+	#   --provenance false \
+	#   --sbom false \
+	#   --platform=linux/arm64 \
+	#   --cache-to type=local,dest=$(BASE)/docker-cache/arm64,mode=max \
+	#   --cache-from type=local,src=$(BASE)/docker-cache/arm64 \
+	#   --rm \
+	#   -t $(S3_IMAGE):arm64 \
+	#   $(BASE)/s3-utils
+	# docker manifest create \
+	#   $(S3_IMAGE):latest \
+	#   --amend $(S3_IMAGE):amd64 \
+	#   --amend $(S3_IMAGE):arm64
+	# docker manifest push --purge $(S3_IMAGE):latest
+	# @#docker build --rm -t $(S3_IMAGE) $(BASE)/s3-utils
 
 
 .PHONY: minio-console
