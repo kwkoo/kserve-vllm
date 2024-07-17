@@ -13,15 +13,17 @@
 <!-- https://stackoverflow.com/a/8825714 -->
 <div class="container">
   <div class="responses">
-    <div id="llm-response"></div>
+    <div id="llm-response-container"><span id="llm-response"></span><span id="cursor">&nbsp; &nbsp;</span></div>
     <div id="sources"></div>
     <img src="ajax-loader.gif" id="spinner"/>
   </div>
   <div class="footer">
+    <div class="rounded-container">
       <div class="rounded">
         <input id="prompt" type="text" size="50" placeholder="Enter query here" onkeydown="lookForEnter()"/>
         <button id="query-button" onclick="query()">↩︎</button>
       </div>
+    </div>
   </div>
 </div>
 

@@ -1,6 +1,8 @@
 var prompt = null;
 var queryButton = null;
 var llmResponse = null;
+var llmResponseContainer = null;
+var cursor = null;
 var sources = null;
 var spinner = null;
 
@@ -8,6 +10,8 @@ function startup() {
     prompt = document.getElementById('prompt');
     queryButton = document.getElementById('query-button');
     llmResponse = document.getElementById('llm-response');
+    llmResponseContainer = document.getElementById('llm-response-container');
+    cursor = document.getElementById('cursor');
     sources = document.getElementById('sources');
     spinner = document.getElementById('spinner');
 
@@ -19,8 +23,7 @@ function showQueryButton(show) {
 }
 
 function showLLMResponse(show) {
-    llmResponse.style.display = (show?'block':'none');
-    llmResponse.innerText = '🀫';
+    llmResponseContainer.style.display = (show?'block':'none');
 }
 
 function showSpinner(show) {
@@ -29,6 +32,11 @@ function showSpinner(show) {
 
 function clearLLMResponse() {
     llmResponse.innerText = '';
+    showCursor(true);
+}
+
+function showCursor(show) {
+    cursor.style.visibility = (show?'visible':'hidden');
 }
 
 function clearSources() {
@@ -64,11 +72,7 @@ function appendSource(path, contents) {
 }
 
 function appendToLLMResponse(text) {
-    let contents = llmResponse.innerText;
-    if (contents.endsWith('🀫')) {
-        contents = contents.slice(0, -2);
-    }
-    llmResponse.innerText = contents + text + '🀫';
+    llmResponse.innerText += text;
     queryButton.scrollIntoView(false);
 }
 
@@ -88,9 +92,6 @@ function processLine(text) {
         return
     }
     if (obj.source != null) {
-        if (llmResponse.innerText.endsWith('🀫')) {
-            llmResponse.innerText = llmResponse.innerText.slice(0, -2);
-        }
         appendSource(obj.source.path, obj.source.contents);
     }
 }
@@ -126,6 +127,7 @@ async function readStreamLineByLine(stream) {
     }
   
     reader.releaseLock();
+    showCursor(false);
   }
 
 function query() {
