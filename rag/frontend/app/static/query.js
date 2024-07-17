@@ -54,17 +54,27 @@ function appendError(text) {
     queryButton.scrollIntoView(false);
 }
 
-function appendSource(path, contents) {
+function appendSource(path, url, contents) {
+    let s = document.createElement('div');
+    s.className = 'source';
+
     let p = document.createElement('div');
     p.className = 'path';
-    p.innerText = path;
+
+    if (url != null) {
+        let a = document.createElement('a');
+        a.href = url;
+        a.target = "_blank";
+        a.innerText = path;
+        p.appendChild(a)
+    } else {
+        p.innerText = path;
+    }
+    s.appendChild(p);
+
     let c = document.createElement('div');
     c.className = 'contents';
     c.innerText = contents;
-
-    let s = document.createElement('div');
-    s.className = 'source';
-    s.appendChild(p);
     s.appendChild(c);
 
     sources.appendChild(s);
@@ -92,7 +102,7 @@ function processLine(text) {
         return
     }
     if (obj.source != null) {
-        appendSource(obj.source.path, obj.source.contents);
+        appendSource(obj.source.path, obj.source.url, obj.source.contents);
     }
 }
 

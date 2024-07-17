@@ -7,6 +7,7 @@ from db import get_db_connection, get_existing_sources
 import boto3
 import os
 import tempfile
+from urllib.parse import urljoin
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import (
     CSVLoader,
@@ -24,6 +25,7 @@ from langchain_community.document_loaders import (
 
 # Load environment variables
 bucket_name = os.environ.get("SOURCE_BUCKET", "documents")
+docs_url = os.environ.get("DOCS_URL")
 tmpdir = os.environ.get("TMPDIR")
 chunk_size = 500
 chunk_overlap = 50
@@ -122,9 +124,16 @@ class Ingester:
                 # fix metadata
                 for doc in load_result:
                     doc.metadata['source'] = file_path
-                    doc.metadata['file_path'] = f"s3://{self.bucket_name}/{file_path}"
+                    if docs_url is None:
+                        doc.metadata['file_path'] = f"s3://{self.bucket_name}/{file_path}"
+                    else:
+                        doc.metadata['file_path'] = urljoin(docs_url, file_path)
+                        if file_path.endswith('.pdf') and doc.metadata.get('page') is not None:
+                            # we add 1 because PyMuPDF page numbers are zero-based
+                            doc.metadata['page'] += 1
+                            doc.metadata['file_path'] += f"#page={ doc.metadata.get('page') }"
                     if doc.metadata.get('page') is None:
-                        doc.metadata['page'] = 0
+                        doc.metadata['page'] = -1
                     if doc.metadata.get('total_pages') is None:
                         doc.metadata['total_pages'] = 0
                     if doc.metadata.get('format') is None:
