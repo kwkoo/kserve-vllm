@@ -39,11 +39,12 @@ ENV \
   CUDA_INSTALL_DIR=/usr/local/cuda \
   CUDA_HOME=/usr/local/cuda \
   NVIDIA_VISIBLE_DEVICES=all \
-  HOME=/root
+  HOME=/root \
+  EMBEDDINGS_MODEL_NAME="all-MiniLM-L6-v2" \
+  RERANKER_MODEL_NAME="BAAI/bge-reranker-base"
 
 COPY --from=builder --chown=:0 /usr/local/miniconda /usr/local/miniconda
 
-ARG EMBEDDINGS_MODEL="all-MiniLM-L6-v2"
 RUN \
   apt update -y \
   && \
@@ -61,7 +62,7 @@ RUN \
   && \
   conda activate app \
   && \
-  python3 -c "from langchain.embeddings import HuggingFaceEmbeddings; HuggingFaceEmbeddings(model_name='$EMBEDDINGS_MODEL')" \
+  python3 -c "from langchain.embeddings import HuggingFaceEmbeddings; HuggingFaceEmbeddings(model_name='$EMBEDDINGS_MODEL_NAME')" \
   && \
   python3 -c "import nltk; nltk.download('punkt'); nltk.download('averaged_perceptron_tagger')" \
   && \
@@ -70,6 +71,8 @@ RUN \
   python -c 'import timm; timm.create_model("resnet18.a1_in1k", pretrained=True)' \
   && \
   python -c 'from unstructured_inference.models.base import get_model; get_model("yolox")' \
+  && \
+  python -c "from langchain_community.cross_encoders import HuggingFaceCrossEncoder; HuggingFaceCrossEncoder(model_name='$RERANKER_MODEL_NAME')" \
   && \
   chmod -R g=u /root
 

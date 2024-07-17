@@ -22,6 +22,10 @@ spec:
           value: /data
         - name: EMBEDDINGS_MODEL_NAME
           value: all-MiniLM-L6-v2
+        - name: RERANKER_MODEL_NAME
+          value: BAAI/bge-reranker-base
+        - name: USE_RERANKER
+          value: "false"
         - name: OPENAI_API_BASE
           value: http://llm-internal:8012/v1
         - name: OPENAI_API_KEY
