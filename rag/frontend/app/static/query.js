@@ -20,6 +20,7 @@ function showQueryButton(show) {
 
 function showLLMResponse(show) {
     llmResponse.style.display = (show?'block':'none');
+    llmResponse.innerText = '🀫';
 }
 
 function showSpinner(show) {
@@ -42,7 +43,7 @@ function appendError(text) {
     d.className = 'error';
     d.innerText = text;
     sources.appendChild(d);
-    d.scrollIntoView(false);
+    queryButton.scrollIntoView(false);
 }
 
 function appendSource(path, contents) {
@@ -59,12 +60,16 @@ function appendSource(path, contents) {
     s.appendChild(c);
 
     sources.appendChild(s);
-    s.scrollIntoView(false);
+    queryButton.scrollIntoView(false);
 }
 
 function appendToLLMResponse(text) {
-    llmResponse.innerText += text;
-    llmResponse.scrollIntoView(false);
+    let contents = llmResponse.innerText;
+    if (contents.endsWith('🀫')) {
+        contents = contents.slice(0, -2);
+    }
+    llmResponse.innerText = contents + text + '🀫';
+    queryButton.scrollIntoView(false);
 }
 
 function processLine(text) {
@@ -83,6 +88,9 @@ function processLine(text) {
         return
     }
     if (obj.source != null) {
+        if (llmResponse.innerText.endsWith('🀫')) {
+            llmResponse.innerText = llmResponse.innerText.slice(0, -2);
+        }
         appendSource(obj.source.path, obj.source.contents);
     }
 }

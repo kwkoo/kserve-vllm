@@ -1,8 +1,69 @@
-body {
-    font-family: sans-serif;
+html {
+    height: 100%
 }
 
-#ingest-button, #query-button, #delete-button, #refresh-button {
+body {
+    font-family: sans-serif;
+    height: 100%
+}
+
+.container {
+    min-height: 100%;
+    position: relative;
+}
+
+.responses {
+    padding-bottom: 100px;
+}
+
+.footer {
+    height: 100px;
+    width: 100%;
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.rounded {
+    position: absolute;
+    top: 10px;
+    width: 90%;
+    background-color: #e0e0e0;
+    border-radius: 50px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 20px;
+    padding-right: 20px;
+    display: flex;
+    flex-direction: row;
+}
+
+#llm-response {
+    display: none;
+    width: 80vw;
+    background-color: lightgray;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 10px;
+    font-family: sans-serif;
+    font-size: 1em;
+    line-height: 1.5;
+    word-wrap: break-word;
+    border-radius: 20px;
+}
+
+#query-button {
+    border: none;
+    display: inline-block;
+    font-size: 1em;
+    border-radius: 50%;
+}
+
+#ingest-button, #delete-button, #refresh-button {
     display: block;
     visibility: visible;
     margin-top: 20px;
@@ -35,42 +96,18 @@ body {
     margin-right: auto;
 }
 
-.grid-columns {
-    display: grid;
-    grid-gap: 10px;
-    grid-template-columns: fit-content(30vw) auto;
-    margin-top: 20px;
-}
-
-.grid-item {
-    display: flex;
-    align-items: center;
-    margin: 10px;
-}
-
 .label {
     font-family: sans-serif;
     font-size: 2em;
 }
 
 #prompt {
-    font-size: 2em;
-    padding: 10px;
-}
-
-#llm-response {
-    display: none;
-    width: 80vw;
-    background-color: lightgray;
-    margin-top: 10px;
-    margin-bottom: 10px;
-    margin-left: auto;
-    margin-right: auto;
-    padding: 10px;
-    font-family: sans-serif;
-    font-size: 1.5em;
-    line-height: 1.5;
-    word-wrap: break-word;
+    font-size: 1em;
+    background: transparent;
+    border: none;
+    outline: none;
+    width: 100%;
+    /* padding: 10px; */
 }
 
 .error {
@@ -81,7 +118,7 @@ body {
     margin-right: auto;
     padding: 10px;
     font-family: sans-serif;
-    font-size: 1.5em;
+    font-size: 1em;
     color: red;
     line-height: 1.5;
     word-wrap: break-word;
@@ -98,17 +135,20 @@ body {
     font-family: sans-serif;
     word-wrap: break-word;
     border-style: solid;
+    border-radius: 20px;
 }
 
 .path {
     font-family: sans-serif;
     font-weight: bold;
-    font-size: 2em;
+    font-size: 1.5em;
     background-color: lightgray;
     margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 10px;
 }
 
 .contents {
     font-family: sans-serif;
-    font-size: 1.5em;
+    font-size: 1em;
 }
