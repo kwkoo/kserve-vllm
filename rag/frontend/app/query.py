@@ -84,8 +84,28 @@ async def llm_query(prompt: str) -> AsyncIterable[str]:
     qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents=True)
     task = asyncio.create_task(send_llm_request())
 
-    async for token in callback.aiter():
-        yield json.dumps({'text': token}) + '\n'
+    async def ping_producer(queue, long_running):
+        while True:
+            await asyncio.wait([long_running], timeout=5)
+            if long_running.done():
+                break
+            await queue.put({'ping': True})
+
+    async def llm_producer(queue):
+        async for token in callback.aiter():
+            await queue.put({'text': token})
+        await queue.put(None)
+
+    queue = asyncio.Queue()
+    llm_future = asyncio.create_task(llm_producer(queue))
+    ping_future = asyncio.create_task(ping_producer(queue, llm_future))
+    while True:
+        item = await queue.get()
+        queue.task_done()
+        if item is None:
+            break
+        yield json.dumps(item) + '\n'
+    await ping_future
     
     await task
     if task.exception() is not None:

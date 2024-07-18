@@ -157,6 +157,7 @@ function query() {
     .finally( () => {
         showSpinner(false);
         showQueryButton(true);
+        showCursor(false);
     });
 }
 
