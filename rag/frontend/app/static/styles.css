@@ -169,8 +169,7 @@ body {
 
 .toggle {
     float: right;
-    top: 20px;
-    right: 20px;
+    margin: 20px;
 }
 
 .invisible {
