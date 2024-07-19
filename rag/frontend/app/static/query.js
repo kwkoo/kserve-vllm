@@ -55,8 +55,15 @@ function appendError(text) {
 }
 
 function appendSource(path, url, contents) {
+    let currentIndex = sources.children.length;
     let s = document.createElement('div');
     s.className = 'source';
+
+    let toggle = document.createElement('button');
+    toggle.className = 'toggle';
+    toggle.innerText = '+';
+    toggle.onclick = function() { toggleSource(currentIndex); }
+    s.appendChild(toggle);
 
     let p = document.createElement('div');
     p.className = 'path';
@@ -73,12 +80,21 @@ function appendSource(path, url, contents) {
     s.appendChild(p);
 
     let c = document.createElement('div');
-    c.className = 'contents';
+    c.className = 'contents invisible';
     c.innerText = contents;
     s.appendChild(c);
 
     sources.appendChild(s);
     queryButton.scrollIntoView(false);
+}
+
+function toggleSource(index) {
+    let cl = sources.children[index].children[2].classList;
+    if (cl.contains("invisible"))
+        sources.children[index].children[0].innerText = '-';
+    else
+    sources.children[index].children[0].innerText = '+';
+    cl.toggle("invisible");
 }
 
 function appendToLLMResponse(text) {
