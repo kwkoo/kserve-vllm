@@ -170,6 +170,8 @@ body {
 .toggle {
     float: right;
     margin: 20px;
+    border-radius: 50%;
+    border: none;
 }
 
 .invisible {
