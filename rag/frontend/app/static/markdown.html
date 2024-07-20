@@ -1,0 +1,34 @@
+<html>
+  <head>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/zero-md@3?register"></script>
+  </head>
+  <body>
+    <zero-md id="zeromd">
+      <script id="contents" type="text/markdown">Empty Page</script>
+    </zero-md>
+    <script>
+      var zeromd = document.getElementById("zeromd");
+      var contents = document.getElementById("contents");
+
+      function showError(msg) {
+        contents.innerText = msg;
+      }
+
+      function loadTarget() {
+        let url = window.location.href;
+        let hash = url.indexOf('#');
+        if (hash == -1) {
+            showError('URL does not contain target page URL');
+            return;
+        }
+        url = url.substring(hash + 1);
+        if (url.length == 0) {
+            showError('could not find target page URL');
+            return;
+        }
+        zeromd.setAttribute("src", url)
+      }
+      window.addEventListener('load', loadTarget, false);
+    </script>
+  </body>
+</html>

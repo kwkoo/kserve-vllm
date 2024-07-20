@@ -67,6 +67,9 @@ function appendSource(path, url, contents) {
     p.className = 'path';
 
     if (url != null) {
+        if (url.endsWith('.md')) {
+            url = 'markdown.html#' + url;
+        }
         let a = document.createElement('a');
         a.href = url;
         a.target = "_blank";
