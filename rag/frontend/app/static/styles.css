@@ -165,6 +165,9 @@ body {
     font-size: 1em;
     line-height: 1.5;
     padding: 10px;
+    transition: max-height 0.5s ease-out;
+    max-height: 50vh;
+    overflow-y: scroll;
 }
 
 .toggle {
@@ -175,6 +178,5 @@ body {
 }
 
 .invisible {
-    visibility: hidden;
-    display: none;
+    max-height: 0;
 }
