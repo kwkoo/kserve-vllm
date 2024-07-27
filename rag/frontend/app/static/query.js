@@ -124,7 +124,7 @@ function processLine(text) {
     }
 }
 
-function lookForEnter() {
+function lookForEnter(event) {
     if (event.key === 'Enter') query();
 }
 
@@ -171,7 +171,7 @@ function query() {
     })
     .then(response => response.body)
     .then(readStreamLineByLine)
-    .catch(error => appendToLLMResponse('\n\nerror: ' + error))
+    .catch(error => appendError(error))
     .finally( () => {
         showSpinner(false);
         showQueryButton(true);

@@ -55,10 +55,6 @@ image:
 	  --rm \
 	  -t $(IMAGE) \
 	  $(BASE)/frontend
-	@#docker build \
-	@#  --rm \
-	@#  -t $(IMAGE) \
-	@#  $(BASE)/frontend
 
 
 # before running this, you need to port-forward to milvus and llm
