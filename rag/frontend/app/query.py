@@ -14,6 +14,8 @@ from typing import AsyncIterable, Any
 import asyncio
 from db import get_db_connection
 
+llm_stop_sequences = ['Question: ']
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 stream_handler = logging.StreamHandler(sys.stdout)
@@ -65,6 +67,7 @@ async def llm_query(prompt: str) -> AsyncIterable[str]:
     callback = AsyncIteratorCallbackHandler()
     llm = OpenAI(
         model_name=model,
+        model_kwargs={"stop": llm_stop_sequences},
         openai_api_base=openai_api_base,
         openai_api_key=openai_api_key,
         callbacks=[callback],
