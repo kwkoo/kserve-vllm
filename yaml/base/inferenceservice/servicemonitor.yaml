@@ -1,3 +1,6 @@
+# This is required because Prometheus doesn't scrape metrics when the
+# InferenceService is not part of the Service Mesh.
+
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
