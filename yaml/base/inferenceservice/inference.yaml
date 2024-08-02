@@ -1,66 +1,31 @@
 apiVersion: serving.kserve.io/v1beta1
 kind: InferenceService
 metadata:
+  annotations:
+    openshift.io/display-name: llm
+    serving.kserve.io/enable-prometheus-scraping: "true"
+  labels:
+    app: llm
+    opendatahub.io/dashboard: 'true'
+    #networking.knative.dev/visibility: cluster-local # to disable route creation
   name: llm
 spec:
   predictor:
-    serviceAccountName: kserve-sa
-    containers:
-    - name: kserve-container
-      image: docker.io/vllm/vllm-openai:latest
-      #image: docker.io/kserve/vllmserver:latest
-      workingDir: /root
-      args:
-      - "--port"
-      - "8080"
-      - "--model"
-      - "/mnt/models"
-      command:
-      - python3
-      - "-m"
-      - vllm.entrypoints.openai.api_server
-      - "--gpu-memory-utilization"
-      - "0.9"
-      - "--max-model-len"
-      - "2048"
-      #- "--trust-remote-code"
-      #- vllm.entrypoints.api_server
-      ports:
-      - containerPort: 8080
-        protocol: TCP
-      env:
-      - name: STORAGE_URI
-        value: s3://models/vicuna/
-      - name: HOME # needed because we need to write to $HOME/.cache
-        value: /root
-      - name: PYTHONPATH
-        value: /workspace
-      volumeMounts:
-      - name: home
-        mountPath: /root
-      livenessProbe:
-        httpGet:
-          path: /version
-          port: 8080
-        initialDelaySeconds: 240
-      readinessProbe:
-        httpGet:
-          path: /version
-          port: 8080
-        initialDelaySeconds: 30
+    minReplicas: 1
+    maxReplicas: 1
+    model:
+      modelFormat:
+        name: vllm
       resources:
-        limits:
-          cpu: "2"
-          memory: 16Gi
-          nvidia.com/gpu: "1"
         requests:
           cpu: "1"
           memory: 16Gi
           nvidia.com/gpu: "1"
-    volumes:
-    - name: home
-      emptyDir: {}
-    tolerations:
-      - key: nvidia.com/gpu
-        value: "True"
-        effect: NoSchedule
+        limits:
+          cpu: "2"
+          memory: 16Gi
+          nvidia.com/gpu: "1"
+      runtime: llm
+      storage:
+        key: aws-connection-models
+        path: /vicuna/

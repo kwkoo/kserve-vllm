@@ -195,22 +195,17 @@ upload-model-nousllama2:
 .PHONY: deploy-llm
 deploy-llm:
 	@echo "deploying inference service..."
+	oc apply -f $(BASE)/yaml/serving-runtime-template.yaml
 	# inference service
 	#
 	oc create ns $(PROJ) || echo "$(PROJ) namespace exists"
-	@AWS_ACCESS_KEY_ID="`oc extract secret/minio -n $(PROJ) --to=- --keys=MINIO_ROOT_USER 2>/dev/null`" \
-	&& \
-	AWS_SECRET_ACCESS_KEY="`oc extract secret/minio -n $(PROJ) --to=- --keys=MINIO_ROOT_PASSWORD 2>/dev/null`" \
-	&& \
-	echo "AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY" \
-	&& \
-	oc kustomize $(BASE)/yaml/base/inferenceservice/ \
-	| \
-	sed \
-	  -e "s/AWS_ACCESS_KEY_ID: .*/AWS_ACCESS_KEY_ID: $$AWS_ACCESS_KEY_ID/" \
-	  -e "s/AWS_SECRET_ACCESS_KEY: .*/AWS_SECRET_ACCESS_KEY: $$AWS_SECRET_ACCESS_KEY/" \
-	| \
-	oc apply -n $(PROJ) -f -
+
+	oc label --overwrite ns/$(PROJ) modelmesh-enabled="false"
+	oc label --overwrite ns/$(PROJ) opendatahub.io/dashboard="true"
+	oc annotate --overwrite ns/$(PROJ) openshift.io/description="$(PROJ)"
+	oc annotate --overwrite ns/$(PROJ) openshift.io/display-name="$(PROJ)"
+
+	oc apply -n $(PROJ) -k $(BASE)/yaml/base/inferenceservice/
 	@/bin/echo -n "waiting for inferenceservice to appear..."
 	@until oc get -n $(PROJ) inferenceservice/llm >/dev/null 2>/dev/null; do \
 	  /bin/echo -n "."; \
@@ -295,3 +290,8 @@ minio-console:
 clean-minio:
 	oc delete -n $(PROJ) -f $(BASE)/yaml/minio.yaml
 	oc delete -n $(PROJ) pvc -l app.kubernetes.io/instance=minio,app.kubernetes.io/name=minio
+
+
+.PHONY: dashboard
+dashboard:
+	@echo "https://`oc get -n redhat-ods-applications route/rhods-dashboard -o jsonpath='{.spec.host}'`"

@@ -4,5 +4,5 @@ kind: Kustomization
 resources:
 - inference.yaml
 - secret.yaml
-- serviceaccount.yaml
 - servicemonitor.yaml
+- serving-runtime.yaml

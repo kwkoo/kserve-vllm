@@ -1,5 +1,6 @@
 PROJ=demo
 IMAGE=ghcr.io/kwkoo/openai-rag
+IPEX_IMAGE=ghcr.io/kwkoo/openai-rag-ipex
 BUILDERNAME=multiarch-builder
 
 BASE:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
@@ -54,6 +55,23 @@ image:
 	  --cache-from type=local,src=$(BASE)/docker-cache \
 	  --rm \
 	  -t $(IMAGE) \
+	  $(BASE)/frontend
+
+
+.PHONY: ipex-image
+ipex-image:
+	-mkdir -p $(BASE)/docker-cache 2>/dev/null
+	docker buildx use $(BUILDERNAME) || docker buildx create --name $(BUILDERNAME) --use --buildkitd-flags '--oci-worker-gc-keepstorage 50000'
+	docker buildx build \
+	  --push \
+	  --provenance false \
+	  --sbom false \
+	  --platform=linux/amd64 \
+	  --cache-to type=local,dest=$(BASE)/docker-cache,mode=max \
+	  --cache-from type=local,src=$(BASE)/docker-cache \
+	  --rm \
+	  -f $(BASE)/frontend/Dockerfile.ipex \
+	  -t $(IPEX_IMAGE) \
 	  $(BASE)/frontend
 
 

@@ -70,26 +70,16 @@ This repo deploys an LLM using KServe and vLLM.
 
 01. Chat with the LLM
 
-		cat << EOF \
+		cat <<EOF \
 		| \
-		curl ${llm_url}/v1/chat/completions \
-		  -sk \
+		curl ${llm_url}/v1/completions \
+		  -skN \
 		  -H 'Content-Type: application/json' \
-		  -d @- \
-		| \
-		jq
+		  -d @-
 		{
 		  "model":"/mnt/models",
-		  "messages":[
-		    {
-		      "role":"system",
-		      "content":"You are a helpful assistant."
-		    },
-		    {
-		      "role":"user",
-		      "content":"Why is the sky blue?"
-		    }
-		  ]
+		  "prompt":"Why is the sky blue?",
+		  "stream":true
 		}
 		EOF
 

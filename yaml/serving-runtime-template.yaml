@@ -1,0 +1,79 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  annotations:
+    description: vLLM OpenAI Model Serving Definition
+    opendatahub.io/apiProtocol: REST
+    opendatahub.io/modelServingSupport: '["single"]'
+    tags: kserve,servingruntime
+  labels:
+    opendatahub.io/dashboard: "true"
+    app.opendatahub.io/model-mesh: "false"
+  name: vllm-openai-template
+  namespace: redhat-ods-applications
+objects:
+- apiVersion: serving.kserve.io/v1alpha1
+  kind: ServingRuntime
+  metadata:
+    annotations:
+      opendatahub.io/recommended-accelerators: '["nvidia.com/gpu"]'
+      openshift.io/display-name: vLLM OpenAI ServingRuntime for KServe
+    labels:
+      opendatahub.io/dashboard: "true"
+    name: vllm-openai-runtime
+  spec:
+    annotations:
+      prometheus.io/path: /metrics
+      prometheus.io/port: "8080"
+    multiModel: false
+    supportedModelFormats:
+    - name: vllm
+      autoSelect: true
+    containers:
+    - name: kserve-container
+      image: docker.io/vllm/vllm-openai:latest
+      #image: docker.io/kserve/vllmserver:latest
+      workingDir: /root
+      args:
+      - "--port"
+      - "8080"
+      - "--model"
+      - "/mnt/models"
+      command:
+      - python3
+      - "-m"
+      - vllm.entrypoints.openai.api_server
+      - "--gpu-memory-utilization"
+      - "0.9"
+      - "--max-model-len"
+      - "2048"
+      #- "--trust-remote-code"
+      #- vllm.entrypoints.api_server
+      ports:
+      - containerPort: 8080
+        protocol: TCP
+      env:
+      - name: HOME # needed because we need to write to $HOME/.cache
+        value: /root
+      - name: PYTHONPATH
+        value: /workspace
+      volumeMounts:
+      - name: home
+        mountPath: /root
+      livenessProbe:
+        httpGet:
+          path: /version
+          port: 8080
+        initialDelaySeconds: 240
+      readinessProbe:
+        httpGet:
+          path: /version
+          port: 8080
+        initialDelaySeconds: 30
+    volumes:
+    - name: home
+      emptyDir: {}
+    tolerations:
+      - key: nvidia.com/gpu
+        value: "True"
+        effect: NoSchedule
