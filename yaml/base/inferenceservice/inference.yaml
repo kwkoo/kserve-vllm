@@ -14,17 +14,24 @@ spec:
     minReplicas: 1
     maxReplicas: 1
     model:
+      #args:
+      #- --tensor-parallel-size
+      #- "4"
+      #- "--gpu-memory-utilization"
+      #- "0.9"
+      #- "--max-model-len"
+      #- "2048"
       modelFormat:
         name: vllm
       resources:
         requests:
           cpu: "1"
           memory: 16Gi
-          nvidia.com/gpu: "1"
+          nvidia.com/gpu: "4"
         limits:
           cpu: "2"
-          memory: 16Gi
-          nvidia.com/gpu: "1"
+          memory: 64Gi
+          nvidia.com/gpu: "4"
       runtime: llm
       storage:
         key: aws-connection-models
