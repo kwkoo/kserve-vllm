@@ -44,18 +44,37 @@ ensure-logged-in:
 
 .PHONY: image
 image:
-	-mkdir -p $(BASE)/docker-cache 2>/dev/null
-	docker buildx use $(BUILDERNAME) || docker buildx create --name $(BUILDERNAME) --use --buildkitd-flags '--oci-worker-gc-keepstorage 50000'
+	docker buildx use $(BUILDERNAME) || docker buildx create --name $(BUILDERNAME)
 	docker buildx build \
 	  --push \
 	  --provenance false \
 	  --sbom false \
 	  --platform=linux/amd64 \
-	  --cache-to type=local,dest=$(BASE)/docker-cache,mode=max \
-	  --cache-from type=local,src=$(BASE)/docker-cache \
 	  --rm \
-	  -t $(IMAGE) \
+	  -t $(IMAGE):amd64 \
+	  -f $(BASE)/frontend/Dockerfile.amd64 \
 	  $(BASE)/frontend
+	docker buildx build \
+	  --push \
+	  --provenance false \
+	  --sbom false \
+	  --platform=linux/arm64 \
+	  --rm \
+	  -t $(IMAGE):arm64 \
+	  -f $(BASE)/frontend/Dockerfile.arm64 \
+	  $(BASE)/frontend
+	docker pull $(IMAGE):amd64
+	docker pull $(IMAGE):arm64
+	docker manifest create \
+	  $(IMAGE):latest \
+	  --amend $(IMAGE):amd64 \
+	  --amend $(IMAGE):arm64
+	docker manifest push $(IMAGE):latest
+
+
+.PHONY: arm
+arm:
+	docker build -t ghcr.io/kwkoo/armfrontend -f $(BASE)/frontend/Dockerfile.arm $(BASE)/frontend
 
 
 .PHONY: ipex-image

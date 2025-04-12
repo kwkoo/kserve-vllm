@@ -1,0 +1,43 @@
+FROM python:3.11
+
+ENV \
+  HOME=/root \
+  EMBEDDINGS_MODEL_NAME="all-MiniLM-L6-v2" \
+  RERANKER_MODEL_NAME="BAAI/bge-reranker-base"
+
+RUN \
+  apt update -y \
+  && \
+  apt install -y libgl1-mesa-glx libglib2.0-0 poppler-utils libtesseract-dev tesseract-ocr \
+  && \
+  apt clean -y \
+  && \
+  echo 'set -o vi' >> $HOME/.bashrc
+
+RUN \
+  --mount=type=bind,source=./app/requirements.txt,target=/app/requirements.txt \
+  pip install --no-cache -r /app/requirements.txt \
+  && \
+  python3 -c "from langchain.embeddings import HuggingFaceEmbeddings; HuggingFaceEmbeddings(model_name='$EMBEDDINGS_MODEL_NAME')" \
+  && \
+  python3 -c "import nltk; nltk.download('punkt'); nltk.download('averaged_perceptron_tagger')" \
+  && \
+  python -c 'from transformers import TableTransformerModel; TableTransformerModel.from_pretrained("microsoft/table-transformer-structure-recognition")' \
+  && \
+  python -c 'import timm; timm.create_model("resnet18.a1_in1k", pretrained=True)' \
+  && \
+  python -c 'from unstructured_inference.models.base import get_model; get_model("yolox")' \
+  && \
+  python -c "from langchain_community.cross_encoders import HuggingFaceCrossEncoder; HuggingFaceCrossEncoder(model_name='$RERANKER_MODEL_NAME')" \
+  && \
+  chmod -R g=u /root
+
+WORKDIR /app
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"]
+EXPOSE 8080
+
+COPY --chown=:0 ./app/ /app/
+RUN \
+  chmod 775 /app \
+  && \
+  chmod -R g=u /app
